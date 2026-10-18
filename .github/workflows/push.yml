@@ -32,7 +32,6 @@ jobs:
         run: node send.mjs
       # GitHub pausiert Zeitpläne nach 60 Tagen ohne Änderungen im Repo; einmal im Monat neu einschalten.
       - name: Zeitplan wach halten
-        if: github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
