@@ -47,6 +47,7 @@ header{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16
 .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
 .search input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 40px 11px 42px;font-size:16px}
 .search input::placeholder{color:var(--muted)}
+.search input::-webkit-search-cancel-button{display:none}
 .search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;width:34px;height:34px;border-radius:10px;color:var(--muted)}
 .viewport{flex:1;min-height:0;overflow:hidden;position:relative}
 .track{display:flex;height:100%;width:500%;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
@@ -168,6 +169,40 @@ a{color:var(--accent);font-weight:600}
 .sheet select{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px;width:100%;box-sizing:border-box;font-size:16px}
 .chips.days .chip{padding:8px 12px}
 
+/* Kalender */
+.seg{display:flex;background:var(--surface-2);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:10px;padding:9px 4px;font-weight:700;color:var(--muted);font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.sub{display:flex;flex-direction:column;gap:16px}
+.monthbar{display:flex;align-items:center;gap:8px}
+.monthbar h2{flex:1;text-align:center;font-size:20px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px}
+.cal .wd{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.cal button{border:0;background:none;border-radius:10px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;padding:0}
+.cal button.out{color:var(--muted);opacity:.45}
+.cal button.today{color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.cal button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.cal .dots2{display:flex;gap:2px;height:5px}
+.cal .dots2 i{width:5px;height:5px;border-radius:50%;background:var(--c)}
+.cal button[aria-pressed="true"] .dots2 i{background:var(--accent-ink)}
+.evlist{display:flex;flex-direction:column;gap:8px}
+.ev{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 10px 12px 14px;text-align:left;width:100%;box-sizing:border-box}
+.ev .tm{flex:none;min-width:50px;font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);line-height:1.3}
+.ev .tm small{display:block;font-family:var(--body);font-weight:500;color:var(--muted);font-size:12px}
+.ev .txt{flex:1;min-width:0}
+.ev .txt b{display:block;font-weight:600;overflow-wrap:anywhere}
+.ev .txt span{display:block;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.ev.bd{background:var(--sun-soft);border-color:transparent}
+.ev .del{align-self:center}
+.daylabel{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:0}
+.sheet{max-height:92vh;overflow-y:auto}
+.sheet label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+.sheet textarea{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px;width:100%;box-sizing:border-box;font-size:16px;min-height:72px;resize:vertical;font-family:inherit}
+.sheet .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet .two label{min-width:0}
+.detail p{margin:0}
+.detail .desc{white-space:pre-wrap;overflow-wrap:anywhere}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr);align-items:end;z-index:5}
 nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0}
@@ -209,7 +244,7 @@ nav .home svg{width:26px;height:26px}
   <div class="viewport" id="vp">
     <div class="track" id="track">
       <section class="page" id="p-aufgaben" aria-label="Aufgaben"></section>
-      <section class="page" id="p-muell" aria-label="Müllabfuhr"></section>
+      <section class="page" id="p-kalender" aria-label="Kalender"></section>
       <section class="page" id="p-home" aria-label="Start"></section>
       <section class="page" id="p-familie" aria-label="Familie"></section>
       <section class="page" id="p-einkauf" aria-label="Einkaufsliste"></section>
@@ -219,7 +254,7 @@ nav .home svg{width:26px;height:26px}
 </div>
 <nav id="nav">
   <button data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="m8 11 2 2 4-4M8 17h8"/></svg>Aufgaben</button>
-  <button data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>Müll</button>
+  <button data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.3" fill="currentColor"/></svg>Kalender</button>
   <button data-i="2" class="home" aria-label="Start"><span class="hb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span></button>
   <button data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 14.5c3 0 6 1.8 6 5.5"/></svg>Familie</button>
   <button data-i="4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.8L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>Einkauf</button>
@@ -250,12 +285,12 @@ const BINS=[
   {id:'gelb',n:'Wertstofftonne',sub:'gelbe Tonne',c:'var(--gelb)',w:2},
   {id:'papier',n:'Papier',sub:'blaue Tonne',c:'var(--papier)',w:4}
 ];
-const PAGES=['aufgaben','muell','home','familie','einkauf'];
+const PAGES=['aufgaben','kalender','home','familie','einkauf'];
 const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={page:2,offset:0,done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={page:2,offset:0,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -290,6 +325,7 @@ const ICON={
   cake:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V12h16v9M2 21h20M4 16c2 1.5 4 1.5 5.3 0 1.4 1.5 4 1.5 5.4 0 1.3 1.5 3.3 1.5 5.3 0M12 12V8M12 5a1 1 0 0 1 0-2"/></svg>',
   paw:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6" r="2.2"/><circle cx="14" cy="6" r="2.2"/><circle cx="18" cy="10" r="2.2"/><path d="M12 11c-3 0-6 4.5-6 7 0 1.6 1.3 2.5 3 2.2 1.2-.2 2-.7 3-.7s1.8.5 3 .7c1.7.3 3-.6 3-2.2 0-2.5-3-7-6-7z"/></svg>',
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.8L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'
 };
 
@@ -356,10 +392,11 @@ function nextBirthday(p){
 function age(p){const t=today(),b=parse(p.b);let a=t.getFullYear()-b.getFullYear();if(t<new Date(t.getFullYear(),b.getMonth(),b.getDate()))a--;return a}
 
 /* ---------- Render ---------- */
+S.calMonth=new Date(today().getFullYear(),today().getMonth(),1);S.calSel=key(today());
 function render(){
   const t=today();
   $('#todayLabel').textContent=WD[t.getDay()]+', '+t.getDate()+'. '+MO[t.getMonth()];
-  renderHome();renderTasks();renderMuell();renderFamily();renderShop();
+  renderHome();renderTasks();renderCal();renderFamily();renderShop();
 }
 
 function statusNote(){
@@ -382,10 +419,12 @@ function renderHome(){
   const bdays=FAMILY.map(p=>({p,...nextBirthday(p)})).sort((a,b)=>a.days-b.days);
   const nb=bdays[0];
   const openShop=S.shop.filter(x=>!x.done).length,rk=ranking();
+  const nev=S.events.filter(e=>e.date>=key(t)).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
   let html='<div class="hero"><div class="ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="32" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="38" cy="38" r="32" fill="none" stroke="var(--sun)" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-pct))+'"/></svg><div class="num">'+done+'/'+list.length+'</div></div><div><h2>'+greet+who+'!</h2><p>'+(open.length?open.length+(open.length===1?' Aufgabe ist':' Aufgaben sind')+' heute noch offen.':'Alle Aufgaben für heute sind erledigt.')+'</p></div></div>';
   html+=soonBins.map(x=>{const n=diffDays(t,x.d);return '<div class="alert"><span class="can" style="--c:'+x.b.c+';width:26px;height:30px"></span><div><b>'+(n===0?'Heute':'Morgen')+' kommt: '+x.b.n+'</b><span class="small muted">'+(n===0?'Tonne sollte schon draußen stehen.':'Heute Abend rausstellen.')+'</span></div></div>'}).join('');
   if(nb.days<=14)html+='<div class="alert"><span style="color:var(--sun)">'+ICON.cake.replace('<svg','<svg width="28" height="28"')+'</span><div><b>'+(nb.days===0?nb.p.n+' hat heute Geburtstag! 🎉':nb.p.n+' hat '+relLow(nb.days)+' Geburtstag')+'</b><span class="small muted">'+nb.p.n+' wird '+nb.turns+(nb.p.dog?' (Hundejahre: viele)':'')+' · '+fmtShort(nb.date)+'</span></div></div>';
   html+=statusNote();
+  html+='<div class="card"><h3>Termine heute & morgen</h3><div class="evlist">'+[['Heute',t],['Morgen',addDays(t,1)]].map(([l,d])=>{const its=itemsOn(d);return '<p class="daylabel" style="margin-top:4px">'+l+' · '+fmtShort(d)+'</p>'+(its.length?its.map(evRow).join(''):'<p class="small muted" style="margin:0">Nichts eingetragen.</p>')}).join('')+'</div></div>';
   if(open.length){
     html+='<div class="card"><h3>Noch offen heute</h3><ul class="open-list">'+open.map(x=>'<li><span>'+esc(x.t)+'</span><span class="muted small">'+SLOTS.find(s=>s[0]===x.slot)[1]+'</span></li>').join('')+'</ul></div>';
   }
@@ -393,27 +432,36 @@ function renderHome(){
   const nx=up[0];
   html+='<div class="tiles">'+
     tile(0,ICON.tasks,'Aufgaben',done+' von '+list.length+' erledigt')+
-    tile(1,ICON.bin,'Müllabfuhr',nx?nx.b.n+' '+relLow(diffDays(t,nx.d)):'Termine eintragen')+
-    tile(3,ICON.cake,'Familie','Nächster Geburtstag: '+nb.p.n)+
+    tile(1,ICON.bin,'Müllabfuhr',nx?nx.b.n+' '+relLow(diffDays(t,nx.d)):'Termine eintragen','muell')+
+    tile(1,ICON.cal,'Kalender',nev?nev.title+' · '+relLow(diffDays(t,parse(nev.date))):'Termin eintragen','termine')+
     tile(4,ICON.cart,'Einkaufsliste',openShop?openShop+(openShop===1?' Sache fehlt':' Sachen fehlen'):'Nichts offen')+
     '</div>';
   el.innerHTML=html;
-  el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.go)));
+  bindGo(el);
+  el.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
 }
-function tile(i,ic,b,s){return '<button class="tile" data-go="'+i+'"><span class="ic">'+ic+'</span><b>'+b+'</b><span>'+esc(s)+'</span></button>'}
+function tile(i,ic,b,s,tab){return '<button class="tile" data-go="'+i+'"'+(tab?' data-tab="'+tab+'"':'')+'><span class="ic">'+ic+'</span><b>'+b+'</b><span>'+esc(s)+'</span></button>'}
 
 function renderSearch(){
   const q=S.q.toLowerCase(),t=today(),res=[];
   allTasks().forEach(x=>{if((x.t+' '+x.k+' '+x.slot+' '+daysLabel(x)+' '+(x.who||'')).toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:0,title:x.t,sub:SLOTS.find(s=>s[0]===x.slot)[1]+(x.days?' · '+daysLabel(x):'')+(x.who?' · für '+x.who:'')+(d?' · erledigt von '+d.name:''),tag:'Aufgabe'})}});
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:4,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
   if('einkaufsliste einkaufen'.includes(q))res.push({go:4,title:'Einkaufsliste',sub:S.shop.filter(x=>!x.done).length+' offen',tag:'Einkauf'});
+  S.events.forEach(e=>{if((e.title+' '+(e.place||'')+' '+(e.persons||[]).join(' ')+' '+(e.desc||'')+' termin kalender').toLowerCase().includes(q)){const d=parse(e.date);res.push({go:1,tab:'termine',day:e.date,title:e.title,sub:fmtShort(d)+(d.getFullYear()!==t.getFullYear()?' '+d.getFullYear():'')+(e.time?' · '+e.time+' Uhr':'')+(e.place?' · '+e.place:''),tag:'Termin'})}});
+  bdaysAll().forEach(b=>{if((b.name+' geburtstag').toLowerCase().includes(q))res.push({go:1,tab:'geburtstage',title:b.name,sub:'Geburtstag am '+parse(b.date).getDate()+'. '+MO[parse(b.date).getMonth()],tag:'Geburtstag'})});
+  if('kalender termine'.includes(q))res.push({go:1,tab:'termine',title:'Kalender',sub:'Termine, Geburtstage und Müll',tag:'Kalender'});
   if('punkte rangliste'.includes(q))res.push({go:3,title:'Wochen-Rangliste',sub:'Wer hat diese Woche am meisten gemacht?',tag:'Familie'});
-  BINS.forEach(b=>{if((b.n+' '+b.sub+' müll tonne abfuhr').toLowerCase().includes(q)){const d=nextPickup(b,t);res.push({go:1,title:b.n,sub:d?fmtShort(d)+' ('+relDay(diffDays(t,d))+')':'Noch kein Termin eingetragen',tag:'Müll'})}});
+  BINS.forEach(b=>{if((b.n+' '+b.sub+' müll tonne abfuhr').toLowerCase().includes(q)){const d=nextPickup(b,t);res.push({go:1,tab:'muell',title:b.n,sub:d?fmtShort(d)+' ('+relDay(diffDays(t,d))+')':'Noch kein Termin eingetragen',tag:'Müll'})}});
   FAMILY.forEach(p=>{if((p.n+' '+p.role+' geburtstag').toLowerCase().includes(q)){const nb=nextBirthday(p);res.push({go:3,title:p.n,sub:p.role+' · Geburtstag '+fmtShort(nb.date),tag:'Familie'})}});
-  if('home bildschirm installieren app name einstellungen'.includes(q))res.push({go:3,title:'App zum Home-Bildschirm',sub:'Anleitung und Name wählen',tag:'Familie'});
-  return '<h2>Suche</h2>'+(res.length?'<div class="searchres">'+res.map(r=>'<button class="res" data-go="'+r.go+'"><div><b>'+esc(r.title)+'</b><small>'+esc(r.sub)+'</small></div><span class="tag">'+r.tag+'</span></button>').join('')+'</div>':'<p class="muted">Nichts gefunden für „'+esc(S.q)+'“.</p>');
+  return '<h2>Suche</h2>'+(res.length?'<div class="searchres">'+res.map(r=>'<button class="res" data-go="'+r.go+'"'+(r.tab?' data-tab="'+r.tab+'"':'')+(r.day?' data-day="'+r.day+'"':'')+'><div><b>'+esc(r.title)+'</b><small>'+esc(r.sub)+'</small></div><span class="tag">'+r.tag+'</span></button>').join('')+'</div>':'<p class="muted">Nichts gefunden für „'+esc(S.q)+'“.</p>');
 }
-function bindSearch(el){el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.go)))}
+function bindSearch(el){bindGo(el)}
+function bindGo(el){el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.tab)S.calTab=b.dataset.tab;
+  if(b.dataset.day){S.calSel=b.dataset.day;const d=parse(b.dataset.day);S.calMonth=new Date(d.getFullYear(),d.getMonth(),1)}
+  if(b.dataset.tab||b.dataset.day)renderCal();
+  go(+b.dataset.go);
+}))}
 
 function renderTasks(){
   const el=$('#p-aufgaben'),d=viewDate(),list=tasksFor(d),wk=d.getDay()===0||d.getDay()===6;
@@ -461,6 +509,130 @@ function renderMuell(){
   const f=$('#mform');if(f)f.addEventListener('submit',saveMuell);
 }
 
+/* ---------- Kalender ---------- */
+const MAXY=10;
+function isLeap(y){return (y%4===0&&y%100!==0)||y%400===0}
+function bdaysAll(){return S.bdaysLoaded?S.bdays:FAMILY.map(p=>({id:'f-'+p.n,name:p.n,date:p.b}))}
+function bdayOn(b,d){const x=parse(b.date);if(x.getMonth()!==d.getMonth()||d.getFullYear()<x.getFullYear())return false;let day=x.getDate();if(x.getMonth()===1&&day===29&&!isLeap(d.getFullYear()))day=28;return day===d.getDate()}
+function itemsOn(d){
+  const k=key(d),out=[];
+  S.events.filter(e=>e.date===k).forEach(e=>out.push({kind:'ev',e,time:e.time||''}));
+  bdaysAll().filter(b=>bdayOn(b,d)).forEach(b=>out.push({kind:'bd',b,time:'',age:d.getFullYear()-parse(b.date).getFullYear()}));
+  BINS.forEach(bin=>{const p=nextPickup(bin,d);if(p&&key(p)===k)out.push({kind:'muell',bin,time:''})});
+  return out.sort((a,b)=>a.time.localeCompare(b.time));
+}
+function longDate(d){return WD[d.getDay()]+', '+d.getDate()+'. '+MO[d.getMonth()]+' '+d.getFullYear()}
+function evRow(it){
+  if(it.kind==='ev'){const e=it.e;return '<button class="ev" data-ev="'+esc(e.id)+'"><span class="tm">'+(e.time?esc(e.time):'<small>ganztägig</small>')+'</span><span class="txt"><b>'+esc(e.title)+'</b>'+(e.place?'<span>Ort: '+esc(e.place)+'</span>':'')+(e.persons&&e.persons.length?'<span>Mit: '+esc(e.persons.join(', '))+'</span>':'')+'</span></button>'}
+  if(it.kind==='bd')return '<div class="ev bd"><span class="tm">🎂</span><span class="txt"><b>'+esc(it.b.name)+' hat Geburtstag</b>'+(it.age>0?'<span>wird '+it.age+'</span>':'')+'</span></div>';
+  return '<div class="ev"><span class="tm"><span class="can" style="--c:'+it.bin.c+';width:18px;height:22px;display:block;margin:4px 0 0 6px"></span></span><span class="txt"><b>'+it.bin.n+'</b><span>Müllabfuhr · Tonne am Vorabend rausstellen</span></span></div>';
+}
+function renderCal(){
+  const el=$('#p-kalender');
+  if(!$('#calSeg')){
+    el.innerHTML='<h2>Kalender</h2><div class="seg" id="calSeg" role="group" aria-label="Bereich"><button data-ct="termine">Termine</button><button data-ct="geburtstage">Geburtstage</button><button data-ct="muell">Müll</button></div><div class="sub" id="calTermine"></div><div class="sub" id="calGeb"><div class="sub" id="gebList"></div><form class="card form" id="bForm"><b>Geburtstag eintragen</b><div class="frow"><label>Name<input id="bName" maxlength="40" placeholder="z. B. Oma" autocomplete="off"></label><label>Geburtsdatum<input type="date" id="bDate" max="'+key(today())+'"></label></div><button class="btn" type="submit">Eintragen</button></form></div><div class="sub" id="p-muell"></div>';
+    el.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{S.calTab=b.dataset.ct;renderCal()}));
+    $('#bForm').addEventListener('submit',addBday);
+  }
+  el.querySelectorAll('[data-ct]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ct===S.calTab));
+  $('#calTermine').hidden=S.calTab!=='termine';$('#calGeb').hidden=S.calTab!=='geburtstage';$('#p-muell').hidden=S.calTab!=='muell';
+  $('#bForm').hidden=!S.canWrite;
+  renderTermine();renderGeb();if(!S.editMuell)renderMuell();
+}
+function renderTermine(){
+  const box=$('#calTermine'),t=today(),m=S.calMonth,y=m.getFullYear(),mo=m.getMonth();
+  const first=new Date(y,mo,1),start=addDays(first,-((first.getDay()+6)%7));
+  const minM=new Date(t.getFullYear()-1,t.getMonth(),1),maxM=new Date(t.getFullYear()+MAXY,t.getMonth(),1);
+  let g='<div class="cal">'+['Mo','Di','Mi','Do','Fr','Sa','So'].map(w=>'<span class="wd">'+w+'</span>').join('');
+  for(let i=0;i<42;i++){
+    const d=addDays(start,i);if(i===35&&d.getMonth()!==mo)break;
+    const k=key(d),its=itemsOn(d);
+    const dots=[...new Set(its.map(x=>x.kind))].map(kd=>'<i style="--c:'+(kd==='ev'?'var(--accent)':kd==='bd'?'var(--sun)':'var(--muted)')+'"></i>').join('');
+    g+='<button class="'+(d.getMonth()!==mo?'out ':'')+(k===key(t)?'today':'')+'" data-day="'+k+'" aria-pressed="'+(k===S.calSel)+'" aria-label="'+d.getDate()+'. '+MO[d.getMonth()]+(its.length?', '+its.length+(its.length===1?' Eintrag':' Einträge'):'')+'">'+d.getDate()+'<span class="dots2">'+dots+'</span></button>';
+  }
+  g+='</div>';
+  const sel=parse(S.calSel),its=itemsOn(sel),atToday=S.calSel===key(t)&&y===t.getFullYear()&&mo===t.getMonth();
+  let html='<div class="monthbar"><button class="iconbtn" id="mPrev" aria-label="Monat zurück" '+(m<=minM?'disabled':'')+'>'+ICON.left+'</button><h2>'+MO[mo]+' '+y+'</h2><button class="iconbtn" id="mNext" aria-label="Monat vor" '+(m>=maxM?'disabled':'')+'>'+ICON.right+'</button></div>'+g;
+  html+='<div class="row" style="justify-content:space-between;align-items:center;min-height:34px"><p class="daylabel">'+relDay(diffDays(t,sel))+' · '+fmtShort(sel)+(y!==t.getFullYear()?' '+sel.getFullYear():'')+'</p>'+(atToday?'':'<button class="undo" id="calToday">Zu heute</button>')+'</div>';
+  html+=its.length?'<div class="evlist">'+its.map(evRow).join('')+'</div>':'<p class="small muted" style="margin:0">Keine Termine an diesem Tag.</p>';
+  if(S.canWrite)html+='<button class="addtask" id="addEv">+ Termin am '+sel.getDate()+'.'+(sel.getMonth()+1)+'. eintragen</button>';
+  else html+=statusNote();
+  const up=S.events.filter(e=>e.date>=key(t)).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,8);
+  html+='<div><h3>Nächste Termine</h3>'+(up.length?'<div class="evlist">'+up.map(e=>{const d=parse(e.date);return '<button class="ev" data-ev="'+esc(e.id)+'"><span class="tm">'+d.getDate()+'.'+(d.getMonth()+1)+'.<small>'+(d.getFullYear()!==t.getFullYear()?d.getFullYear():(e.time?esc(e.time):''))+'</small></span><span class="txt"><b>'+esc(e.title)+'</b><span>'+relDay(diffDays(t,d))+(e.place?' · '+esc(e.place):'')+'</span></span></button>'}).join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Termine eingetragen. Tippe auf einen Tag und dann auf „+ Termin“.</p>')+'</div>';
+  box.innerHTML=html;
+  $('#mPrev').onclick=()=>{S.calMonth=new Date(y,mo-1,1);renderTermine()};
+  $('#mNext').onclick=()=>{S.calMonth=new Date(y,mo+1,1);renderTermine()};
+  const ct=$('#calToday');if(ct)ct.onclick=()=>{S.calSel=key(t);S.calMonth=new Date(t.getFullYear(),t.getMonth(),1);renderTermine()};
+  box.querySelectorAll('[data-day]').forEach(b=>b.addEventListener('click',()=>{S.calSel=b.dataset.day;const d=parse(S.calSel);if(d.getMonth()!==mo)S.calMonth=new Date(d.getFullYear(),d.getMonth(),1);renderTermine()}));
+  box.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  const ae=$('#addEv');if(ae)ae.onclick=()=>openEventSheet(null,S.calSel);
+}
+function renderGeb(){
+  const t=today();
+  const list=bdaysAll().map(b=>{const x=parse(b.date);let n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n=new Date(t.getFullYear()+1,x.getMonth(),x.getDate());return {b,n,days:diffDays(t,n),turns:n.getFullYear()-x.getFullYear()}}).sort((a,b)=>a.days-b.days);
+  let html='<p class="small muted" style="margin:0">Geburtstage stehen jedes Jahr automatisch im Kalender.</p>'+statusNote();
+  html+=list.length?'<div class="evlist">'+list.map(x=>'<div class="ev bd"><span class="tm">🎂</span><span class="txt"><b>'+esc(x.b.name)+'</b><span>'+parse(x.b.date).toLocaleDateString('de-DE')+' · wird '+x.turns+' · '+(x.days===0?'heute!':relDay(x.days))+'</span></span>'+(S.canWrite&&S.bdaysLoaded?'<button class="del" data-bdel="'+esc(x.b.id)+'" aria-label="'+esc(x.b.name)+' löschen">✕</button>':'')+'</div>').join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Geburtstage eingetragen.</p>';
+  const box=$('#gebList');box.innerHTML=html;
+  box.querySelectorAll('[data-bdel]').forEach(b=>b.addEventListener('click',()=>{
+    if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Löschen?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='✕'}},3000);return}
+    deleteBday(b.dataset.bdel);
+  }));
+}
+async function addBday(ev){
+  ev.preventDefault();const n=$('#bName').value.trim(),d=$('#bDate').value;
+  if(!n||!/^\d{4}-\d\d-\d\d$/.test(d)){toast('Bitte Name und Datum eingeben');return}
+  if(!S.db)return;
+  try{await S.db.collection('birthdays').add({name:n,date:d,at:Date.now()});$('#bName').value='';$('#bDate').value='';toast('Geburtstag eingetragen')}catch(e){handleWriteError(e)}
+}
+async function deleteBday(id){try{await S.db.collection('birthdays').doc(id).delete();toast('Geburtstag gelöscht')}catch(e){handleWriteError(e)}}
+function openEventSheet(ev,dateKey){
+  const host=$('#sheetHost'),e=ev||{},ppl=new Set(e.persons||[]);
+  const minK=key(new Date(today().getFullYear()-1,today().getMonth(),1)),maxK=key(new Date(today().getFullYear()+MAXY,today().getMonth()+1,0));
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="evForm" aria-label="Termin"><h2 style="font-size:20px">'+(ev?'Termin bearbeiten':'Neuer Termin')+'</h2>'+
+    '<label class="f">Titel<input id="eTitle" maxlength="60" value="'+esc(e.title||'')+'" placeholder="z. B. Zahnarzt" autocomplete="off"></label>'+
+    '<label class="f">Ort<input id="ePlace" maxlength="80" value="'+esc(e.place||'')+'" placeholder="z. B. Bad Oldesloe" autocomplete="off"></label>'+
+    '<div class="two"><label class="f">Datum<input type="date" id="eDate" value="'+esc(e.date||dateKey)+'" min="'+minK+'" max="'+maxK+'"></label><label class="f">Uhrzeit<input type="time" id="eTime" value="'+esc(e.time||'')+'"></label></div>'+
+    '<div><h3>Wer ist dabei?</h3><div class="chips">'+FAMILY.map(p=>'<button type="button" class="chip" data-p="'+p.n+'" aria-pressed="'+ppl.has(p.n)+'">'+p.n+'</button>').join('')+'</div></div>'+
+    '<label class="f">Beschreibung (optional)<textarea id="eDesc" maxlength="500">'+esc(e.desc||'')+'</textarea></label>'+
+    '<div class="row"><button class="btn" type="submit" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></form></div>';
+  host.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.p;ppl.has(n)?ppl.delete(n):ppl.add(n);b.setAttribute('aria-pressed',ppl.has(n))}));
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
+  $('#evForm').addEventListener('submit',async x=>{
+    x.preventDefault();
+    const title=$('#eTitle').value.trim(),date=$('#eDate').value,time=$('#eTime').value;
+    if(!title){$('#eTitle').focus();toast('Bitte einen Titel eingeben');return}
+    if(!/^\d{4}-\d\d-\d\d$/.test(date)||date<minK||date>maxK){$('#eDate').focus();toast('Bitte ein Datum bis '+MAXY+' Jahre im Voraus wählen');return}
+    const data={title,place:$('#ePlace').value.trim(),date,time:/^\d\d:\d\d$/.test(time)?time:'',persons:FAMILY.map(p=>p.n).filter(n=>ppl.has(n)),desc:$('#eDesc').value.trim(),at:e.at||Date.now(),by:e.by||S.name||''};
+    if(!S.db)return;
+    close();
+    try{
+      if(ev)await S.db.collection('events').doc(ev.id).set(data);else await S.db.collection('events').add(data);
+      S.calSel=date;const d=parse(date);S.calMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCal();
+      toast(ev?'Termin geändert':'Termin eingetragen');
+    }catch(err){handleWriteError(err)}
+  });
+}
+function openEventDetail(id){
+  const e=S.events.find(x=>x.id===id);if(!e)return;
+  const host=$('#sheetHost'),d=parse(e.date);
+  host.innerHTML='<div class="scrim" id="scrim"><div class="sheet detail" role="dialog" aria-label="Termin"><div><h2 style="font-size:22px;overflow-wrap:anywhere">'+esc(e.title)+'</h2><p class="muted" style="margin-top:4px">'+longDate(d)+(e.time?' · '+esc(e.time)+' Uhr':' · ganztägig')+'</p></div>'+
+    (e.place?'<p><b>Ort:</b> '+esc(e.place)+'</p>':'')+
+    (e.persons&&e.persons.length?'<p><b>Mit:</b> '+esc(e.persons.join(', '))+'</p>':'')+
+    (e.desc?'<p class="desc">'+esc(e.desc)+'</p>':'')+
+    (e.by?'<p class="small muted">Eingetragen von '+esc(e.by)+'</p>':'')+
+    '<div class="row">'+(S.canWrite?'<button class="btn" id="evEdit" style="flex:1">Bearbeiten</button><button class="btn ghost" id="evDel" style="color:var(--danger)">Löschen</button>':'')+'<button class="btn ghost" id="cancel">Schließen</button></div></div></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
+  const ed=$('#evEdit');if(ed)ed.onclick=()=>openEventSheet(e,e.date);
+  const dl=$('#evDel');if(dl)dl.onclick=async()=>{
+    if(!dl.dataset.armed){dl.dataset.armed='1';dl.textContent='Wirklich löschen?';return}
+    close();try{await S.db.collection('events').doc(e.id).delete();toast('Termin gelöscht')}catch(err){handleWriteError(err)}
+  };
+}
+
 function renderFamily(){
   const el=$('#p-familie');
   const list=FAMILY.map(p=>({p,...nextBirthday(p)}));
@@ -469,9 +641,7 @@ function renderFamily(){
   '<div class="card"><h3>Wochen-Rangliste · seit Montag</h3>'+(rk.length?'<ol class="rank">'+rk.map((r,i)=>'<li><span class="pos">'+(i+1)+'</span><div><b>'+esc(r[0])+'</b><div class="bar"><i style="width:'+Math.round(r[1]/max*100)+'%"></i></div></div><span class="pts">'+r[1]+' P.</span></li>').join('')+'</ol><p class="small muted" style="margin:12px 0 0">Jede abgehakte Aufgabe gibt einen Punkt.</p>':'<p class="small muted" style="margin:0">Noch keine Punkte diese Woche. Jede abgehakte Aufgabe gibt einen Punkt.</p>')+'</div>'+
   '<div class="people">'+list.map(x=>'<div class="person'+(x.days===0?' bday':'')+'"><span class="av" style="--c:'+x.p.c+'">'+(x.p.dog?'<span style="width:24px;height:24px;display:block">'+ICON.paw+'</span>':x.p.n[0])+'</span><div class="txt"><b>'+x.p.n+'</b><span class="small muted">'+x.p.role+' · '+age(x.p)+' Jahre · *'+parse(x.p.b).toLocaleDateString('de-DE')+'</span></div><div class="bd"><strong>'+(x.days===0?'Heute! 🎉':x.days+' T.')+'</strong>bis Geburtstag</div></div>').join('')+'</div>'+
   '<div class="card"><h3>Nächste Geburtstage</h3><ul class="open-list">'+list.slice().sort((a,b)=>a.days-b.days).map(x=>'<li><span>'+x.p.n+' wird '+x.turns+'</span><span class="muted small">'+fmtShort(x.date)+'</span></li>').join('')+'</ul></div>'+
-  '<div class="card"><h3>Wer benutzt dieses Handy?</h3><p class="small muted" style="margin:0 0 10px">Wird beim Abhaken vorausgewählt.</p><div class="chips">'+FAMILY.filter(p=>!p.dog).map(p=>'<button class="chip" data-n="'+p.n+'" aria-pressed="'+(S.name===p.n)+'">'+p.n+'</button>').join('')+'</div></div>'+
-  '<div class="card"><h3>Zum Home-Bildschirm</h3><p class="small" style="margin:0 0 8px"><b>iPhone (Safari):</b></p><ol class="steps small"><li>Diese Seite in Safari öffnen.</li><li>Auf das Teilen-Symbol tippen (Quadrat mit Pfeil).</li><li>„Zum Home-Bildschirm“ wählen und „Frahm“ bestätigen.</li></ol><p class="small" style="margin:12px 0 8px"><b>Android (Chrome):</b></p><ol class="steps small"><li>Menü ⋮ oben rechts öffnen.</li><li>„Zum Startbildschirm hinzufügen“ tippen.</li></ol></div>'+
-  '<div class="card"><h3>Bedienung</h3><ul class="steps small"><li>Nach links und rechts wischen wechselt die Bereiche.</li><li>Der runde Knopf unten bringt dich zurück zum Start.</li><li>Die Suche oben findet Aufgaben, Tonnen und Familie.</li></ul></div>';
+  '<div class="card"><h3>Wer benutzt dieses Handy?</h3><p class="small muted" style="margin:0 0 10px">Wird beim Abhaken vorausgewählt.</p><div class="chips">'+FAMILY.filter(p=>!p.dog).map(p=>'<button class="chip" data-n="'+p.n+'" aria-pressed="'+(S.name===p.n)+'">'+p.n+'</button>').join('')+'</div></div>';
   el.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{S.name=b.dataset.n;lsSet('frahm-name',S.name);render();toast('Hallo '+S.name+'!')}));
 }
 
@@ -522,7 +692,7 @@ async function saveMuell(ev){
   ev.preventDefault();
   const data={};
   BINS.forEach(b=>{const v=$('#m-'+b.id+'-d').value;data[b.id]={start:v||'',weeks:+$('#m-'+b.id+'-w').value,dates:[]}});
-  try{await S.db.collection('config').doc('muell').set(data);S.editMuell=false;renderMuell();renderHome();toast('Termine gespeichert')}catch(e){handleWriteError(e)}
+  try{await S.db.collection('config').doc('muell').set(data);S.editMuell=false;renderCal();renderHome();toast('Termine gespeichert')}catch(e){handleWriteError(e)}
 }
 function handleWriteError(e){
   if(e&&e.code==='permission-denied'){askCode('Der Familien-Code stimmt nicht. Bitte neu eingeben.');return}
@@ -602,7 +772,13 @@ function connect(){
     S.done=m;renderHome();renderTasks();renderFamily();
   },fail));
   unsubs.push(base.collection('config').doc('muell').onSnapshot(snap=>{
-    S.muell=snap.exists?snap.data():null;if(!S.editMuell)renderMuell();renderHome();
+    S.muell=snap.exists?snap.data():null;renderCal();renderHome();
+  },fail));
+  unsubs.push(base.collection('events').onSnapshot(snap=>{
+    S.events=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(e=>e.title&&/^\d{4}-\d\d-\d\d$/.test(e.date||''));renderCal();renderHome();
+  },fail));
+  unsubs.push(base.collection('birthdays').onSnapshot(snap=>{
+    S.bdays=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(b=>b.name&&/^\d{4}-\d\d-\d\d$/.test(b.date||''));S.bdaysLoaded=true;renderCal();renderHome();
   },fail));
   unsubs.push(base.collection('shopping').onSnapshot(snap=>{
     S.shop=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(x=>x.text);renderShop();renderHome();
