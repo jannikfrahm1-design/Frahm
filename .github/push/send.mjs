@@ -135,14 +135,24 @@ async function due() {
     }
   }
 
-  // Termine: mit Uhrzeit eine Stunde vorher, ohne Uhrzeit morgens um 7
+  // Termine: Erinnerungen laut e.remind (Minuten vorher), Standard 24 Std, 2 Std und 30 Min. Ohne Uhrzeit zählt 9 Uhr.
+  // Jede Erinnerung darf bis zur nächsten (oder höchstens 90 Minuten) verspätet kommen, nie nach Terminbeginn.
   for (const e of events) {
-    if (!e.title || e.date !== T) continue;
+    if (!e.title || !/^\d{4}-\d\d-\d\d$/.test(e.date || '')) continue;
     const timed = /^\d\d:\d\d$/.test(e.time || '');
-    const ok = timed ? inWin(new Date(at(today, e.time) - 60 * 6e4), at(today, e.time)) : inWin(at(today, '07:00'), at(today, '21:00'));
-    if (!ok) continue;
-    const who = Array.isArray(e.persons) && e.persons.length ? ' · ' + e.persons.join(', ') : '';
-    out.push({ id: `ev_${T}_${e.id}`, title: '📅 ' + (timed ? `Um ${e.time}: ` : 'Heute: ') + e.title, body: (e.place ? e.place : 'Termin') + who });
+    const start = at(parse(e.date), timed ? e.time : '09:00');
+    if (start <= now || start - now > 8 * 864e5) continue;
+    const offs = (Array.isArray(e.remind) ? e.remind : [1440, 120, 30]).map(Number).filter(n => n > 0).sort((a, b) => b - a);
+    offs.forEach((off, i) => {
+      const from = new Date(start - off * 6e4);
+      const next = i + 1 < offs.length ? new Date(start - offs[i + 1] * 6e4) : start;
+      const to = new Date(Math.min(+from + 90 * 6e4, +next, +start));
+      if (!inWin(from, to)) return;
+      const days = diffDays(today, parse(e.date));
+      const when = (days === 0 ? 'Heute' : days === 1 ? 'Morgen' : days === 2 ? 'Übermorgen' : `Am ${parse(e.date).getDate()}.${parse(e.date).getMonth() + 1}.`) + (timed ? ` um ${e.time} Uhr` : '');
+      const rest = [e.place, Array.isArray(e.persons) && e.persons.length ? e.persons.join(', ') : ''].filter(Boolean).join(' · ');
+      out.push({ id: `ev_${e.id}_${e.date}_${e.time || 'x'}_${off}`, title: `📅 ${e.title}`, body: when + (rest ? ' · ' + rest : '') });
+    });
   }
   return out;
 }

@@ -691,17 +691,26 @@ async function addBday(ev){
   try{await S.db.collection('birthdays').add({name:n,date:d,at:Date.now()});$('#bName').value='';['bAddD','bAddM','bAddY'].forEach(i=>$('#'+i).value='');toast('Geburtstag eingetragen')}catch(e){handleWriteError(e)}
 }
 async function deleteBday(id){try{await S.db.collection('birthdays').doc(id).delete();toast('Geburtstag gelöscht')}catch(e){handleWriteError(e)}}
+/* Push-Erinnerungen vor einem Termin, in Minuten. Ohne Uhrzeit zählt 9 Uhr. */
+const REMIND_OPTS=[[10080,'1 Woche'],[2880,'2 Tage'],[1440,'24 Std'],[120,'2 Std'],[60,'1 Std'],[30,'30 Min'],[15,'15 Min']];
+const REMIND_DEFAULT=[1440,120,30];
+function remindOf(e){return Array.isArray(e.remind)?e.remind:REMIND_DEFAULT}
+function remindLabel(e){const r=remindOf(e);return r.length?REMIND_OPTS.filter(o=>r.includes(o[0])).map(o=>o[1]).join(', ')+' vorher':'Keine Erinnerung'}
 function openEventSheet(ev,dateKey){
-  const host=$('#sheetHost'),e=ev||{},ppl=new Set(e.persons||[]);
+  const host=$('#sheetHost'),e=ev||{},ppl=new Set(e.persons||[]),rem=new Set(remindOf(e));
   const minK=key(new Date(today().getFullYear()-1,today().getMonth(),1)),maxK=key(new Date(today().getFullYear()+MAXY,today().getMonth()+1,0));
   host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="evForm" aria-label="Termin"><h2 style="font-size:20px">'+(ev?'Termin bearbeiten':'Neuer Termin')+'</h2>'+
     '<label class="f">Titel<input id="eTitle" maxlength="60" value="'+esc(e.title||'')+'" placeholder="z. B. Zahnarzt" autocomplete="off"></label>'+
     '<label class="f">Ort<input id="ePlace" maxlength="80" value="'+esc(e.place||'')+'" placeholder="z. B. Bad Oldesloe" autocomplete="off"></label>'+
     '<div class="two"><label class="f">Datum<input type="date" id="eDate" value="'+esc(e.date||dateKey)+'" min="'+minK+'" max="'+maxK+'"></label><label class="f">Uhrzeit<input type="time" id="eTime" value="'+esc(e.time||'')+'"></label></div>'+
     '<div><h3>Wer ist dabei?</h3><div class="chips">'+FAMILY.map(p=>'<button type="button" class="chip" data-p="'+p.n+'" aria-pressed="'+ppl.has(p.n)+'">'+p.n+'</button>').join('')+'</div></div>'+
+    '<div><h3>Erinnerung per Push</h3><div class="chips">'+REMIND_OPTS.map(o=>'<button type="button" class="chip" data-r="'+o[0]+'" aria-pressed="'+rem.has(o[0])+'">'+o[1]+'</button>').join('')+'</div><p class="small muted" style="margin:6px 0 0" id="remHint"></p></div>'+
     '<label class="f">Beschreibung (optional)<textarea id="eDesc" maxlength="500">'+esc(e.desc||'')+'</textarea></label>'+
     '<div class="row"><button class="btn" type="submit" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></form></div>';
   host.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.p;ppl.has(n)?ppl.delete(n):ppl.add(n);b.setAttribute('aria-pressed',ppl.has(n))}));
+  const hint=()=>{$('#remHint').textContent=!rem.size?'Keine Push-Erinnerung für diesen Termin.':$('#eTime').value?'':'Ohne Uhrzeit wird von 9 Uhr aus gerechnet.'};
+  host.querySelectorAll('[data-r]').forEach(b=>b.addEventListener('click',()=>{const m=+b.dataset.r;rem.has(m)?rem.delete(m):rem.add(m);b.setAttribute('aria-pressed',rem.has(m));hint()}));
+  $('#eTime').addEventListener('input',hint);hint();
   const close=()=>{host.innerHTML=''};
   $('#cancel').onclick=close;
   $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
@@ -710,7 +719,7 @@ function openEventSheet(ev,dateKey){
     const title=$('#eTitle').value.trim(),date=$('#eDate').value,time=$('#eTime').value;
     if(!title){$('#eTitle').focus();toast('Bitte einen Titel eingeben');return}
     if(!/^\d{4}-\d\d-\d\d$/.test(date)||date<minK||date>maxK){$('#eDate').focus();toast('Bitte ein Datum bis '+MAXY+' Jahre im Voraus wählen');return}
-    const data={title,place:$('#ePlace').value.trim(),date,time:/^\d\d:\d\d$/.test(time)?time:'',persons:FAMILY.map(p=>p.n).filter(n=>ppl.has(n)),desc:$('#eDesc').value.trim(),at:e.at||Date.now(),by:e.by||S.name||''};
+    const data={title,place:$('#ePlace').value.trim(),date,time:/^\d\d:\d\d$/.test(time)?time:'',persons:FAMILY.map(p=>p.n).filter(n=>ppl.has(n)),desc:$('#eDesc').value.trim(),remind:[...rem].sort((a,b)=>b-a),at:e.at||Date.now(),by:e.by||S.name||''};
     if(!S.db)return;
     close();
     try{
@@ -727,6 +736,7 @@ function openEventDetail(id){
     (e.place?'<p><b>Ort:</b> '+esc(e.place)+'</p>':'')+
     (e.persons&&e.persons.length?'<p><b>Mit:</b> '+esc(e.persons.join(', '))+'</p>':'')+
     (e.desc?'<p class="desc">'+esc(e.desc)+'</p>':'')+
+    '<p><b>Erinnerung:</b> '+esc(remindLabel(e))+'</p>'+
     (e.by?'<p class="small muted">Eingetragen von '+esc(e.by)+'</p>':'')+
     '<div class="row">'+(S.canWrite?'<button class="btn" id="evEdit" style="flex:1">Bearbeiten</button><button class="btn ghost" id="evDel" style="color:var(--danger)">Löschen</button>':'')+'<button class="btn ghost" id="cancel">Schließen</button></div></div></div>';
   const close=()=>{host.innerHTML=''};
