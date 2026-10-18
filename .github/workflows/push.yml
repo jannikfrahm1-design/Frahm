@@ -12,7 +12,7 @@ concurrency:
 jobs:
   send:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 32
     env:
       TZ: Europe/Berlin
     steps:

@@ -70,10 +70,8 @@ const diffDays = (a, b) => Math.round((parse(key(b)) - parse(key(a))) / 864e5);
 const at = (d, hhmm) => { const [h, m] = hhmm.split(':').map(Number); const x = new Date(d); x.setHours(h, m, 0, 0); return x; };
 const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-const now = process.env.NOW ? new Date(process.env.NOW) : new Date();
-const today = parse(key(now));
-const tomorrow = addDays(today, 1);
-const T = key(today);
+// Werden in tick() für jeden Durchlauf neu gesetzt.
+let now, today, tomorrow, T;
 const inWin = (from, to) => now >= from && now < to;
 
 /* ---------- Müll: gleiche Logik wie nextPickup() in index.html ---------- */
@@ -158,27 +156,41 @@ async function due() {
 }
 
 /* ---------- Senden ---------- */
-const subs = await list('push');
-if (DRY && !subs.length) subs.push({ id: 'test', name: '', endpoint: 'x' });
-const items = await due();
-console.log(`${hm(now)} · ${subs.length} Handy(s) angemeldet · ${items.length} fällig`);
-for (const it of items) {
-  const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to));
-  if (!targets.length) continue;
-  if (!(await claim(it.id, T))) continue; // schon geschickt
-  const payload = JSON.stringify({ title: it.title, body: it.body, tag: it.id, url: APP_URL });
-  for (const s of targets) {
-    if (DRY) { console.log(`[DRY] an ${s.name || '?'}: ${it.title} – ${it.body}`); continue; }
-    try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 4 * 3600 }); console.log(`gesendet an ${s.name || '?'}: ${it.title}`); }
-    catch (err) {
-      if (err.statusCode === 404 || err.statusCode === 410) { console.log(`Abo von ${s.name || '?'} abgelaufen, entfernt`); await del(`push/${s.id}`); }
-      else console.log(`Fehler bei ${s.name || '?'}: ${err.statusCode || ''} ${err.body || err.message}`);
+async function tick() {
+  now = process.env.NOW ? new Date(process.env.NOW) : new Date();
+  today = parse(key(now)); tomorrow = addDays(today, 1); T = key(today);
+  const subs = await list('push');
+  if (DRY && !subs.length) subs.push({ id: 'test', name: '', endpoint: 'x' });
+  const items = await due();
+  console.log(`${hm(now)} · ${subs.length} Handy(s) angemeldet · ${items.length} fällig`);
+  for (const it of items) {
+    const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to));
+    if (!targets.length) continue;
+    if (!(await claim(it.id, T))) continue; // schon geschickt
+    const payload = JSON.stringify({ title: it.title, body: it.body, tag: it.id, url: APP_URL });
+    for (const s of targets) {
+      if (DRY) { console.log(`[DRY] an ${s.name || '?'}: ${it.title} – ${it.body}`); continue; }
+      try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 4 * 3600 }); console.log(`gesendet an ${s.name || '?'}: ${it.title}`); }
+      catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) { console.log(`Abo von ${s.name || '?'} abgelaufen, entfernt`); await del(`push/${s.id}`); }
+        else console.log(`Fehler bei ${s.name || '?'}: ${err.statusCode || ''} ${err.body || err.message}`);
+      }
     }
+  }
+
+  // Alte Protokoll-Einträge (älter als 14 Tage) aufräumen, einmal am Tag
+  if (now.getHours() === 3 && now.getMinutes() < 15) {
+    const cut = key(addDays(today, -14));
+    for (const l of await list('pushlog')) if (!l.date || l.date < cut) await del(`pushlog/${l.id}`);
   }
 }
 
-// Alte Protokoll-Einträge (älter als 14 Tage) aufräumen, einmal am Tag
-if (now.getHours() === 3 && now.getMinutes() < 15) {
-  const cut = key(addDays(today, -14));
-  for (const l of await list('pushlog')) if (!l.date || l.date < cut) await del(`pushlog/${l.id}`);
+// GitHub startet geplante Läufe oft verspätet. Deshalb prüft jeder Lauf mehrere Minuten lang jede Minute;
+// der nächste Lauf wartet in der Warteschlange (concurrency in push.yml).
+const LOOP_MIN = process.env.NOW || DRY ? 0 : 25;
+const t0 = Date.now();
+for (;;) {
+  try { await tick(); } catch (err) { console.log('Fehler:', err.message); }
+  if (Date.now() - t0 >= LOOP_MIN * 6e4) break;
+  await new Promise(r => setTimeout(r, 60e3 - (Date.now() % 60e3) + 2e3));
 }
