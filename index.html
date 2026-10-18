@@ -574,7 +574,7 @@ function renderTermine(){
   let html='<div class="monthbar"><button class="iconbtn" id="mPrev" aria-label="Monat zurück" '+(m<=minM?'disabled':'')+'>'+ICON.left+'</button><h2>'+MO[mo]+' '+y+'</h2><button class="iconbtn" id="mNext" aria-label="Monat vor" '+(m>=maxM?'disabled':'')+'>'+ICON.right+'</button></div>'+g;
   html+='<div class="row" style="justify-content:space-between;align-items:center;min-height:34px"><p class="daylabel">'+relDay(diffDays(t,sel))+' · '+fmtShort(sel)+(y!==t.getFullYear()?' '+sel.getFullYear():'')+'</p>'+(atToday?'':'<button class="undo" id="calToday">Zu heute</button>')+'</div>';
   html+=its.length?'<div class="evlist">'+its.map(evRow).join('')+'</div>':'<p class="small muted" style="margin:0">Keine Termine an diesem Tag.</p>';
-  if(S.canWrite)html+='<button class="addtask" id="addEv">+ Termin am '+sel.getDate()+'.'+(sel.getMonth()+1)+'. eintragen</button>';
+  if(S.canWrite)html+='<button class="addtask" id="addEv">+ Termin hinzufügen</button>';
   else html+=statusNote();
   html+='<div class="sub"><h3 style="margin:0">Liste ab heute</h3><div class="agenda" id="agenda"></div><div class="agmore" id="agMore"></div></div>';
   box.innerHTML=html;
