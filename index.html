@@ -203,6 +203,22 @@ a{color:var(--accent);font-weight:600}
 .detail p{margin:0}
 .detail .desc{white-space:pre-wrap;overflow-wrap:anywhere}
 
+/* Kalender-Liste */
+.agenda{display:flex;flex-direction:column;gap:14px}
+.agweek{font-family:var(--display);font-weight:800;font-size:17px;margin:6px 0 -2px}
+.agday{display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px;align-items:start}
+.agdate{text-align:center;padding-top:6px}
+.agdate small{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.agdate b{display:block;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.15;font-variant-numeric:tabular-nums}
+.agday.is-today .agdate small{color:var(--accent)}
+.agday.is-today .agdate b{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin:2px auto 0;font-size:20px}
+.agitems{display:flex;flex-direction:column;gap:8px;min-width:0}
+.agb{display:block;width:100%;box-sizing:border-box;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:14px;padding:12px 14px}
+.agb b{display:block;font-size:17px;font-weight:600;overflow-wrap:anywhere}
+.agb span{display:block;font-size:14px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.agb.empty{background:none;border-style:dashed;border-left-width:1px}
+.agmore{text-align:center;font-size:13px;color:var(--muted);padding:8px 0}
+
 /* Bottom nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr);align-items:end;z-index:5}
 nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0}
@@ -290,7 +306,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={page:2,offset:0,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -557,8 +573,7 @@ function renderTermine(){
   html+=its.length?'<div class="evlist">'+its.map(evRow).join('')+'</div>':'<p class="small muted" style="margin:0">Keine Termine an diesem Tag.</p>';
   if(S.canWrite)html+='<button class="addtask" id="addEv">+ Termin am '+sel.getDate()+'.'+(sel.getMonth()+1)+'. eintragen</button>';
   else html+=statusNote();
-  const up=S.events.filter(e=>e.date>=key(t)).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,8);
-  html+='<div><h3>Nächste Termine</h3>'+(up.length?'<div class="evlist">'+up.map(e=>{const d=parse(e.date);return '<button class="ev" data-ev="'+esc(e.id)+'"><span class="tm">'+d.getDate()+'.'+(d.getMonth()+1)+'.<small>'+(d.getFullYear()!==t.getFullYear()?d.getFullYear():(e.time?esc(e.time):''))+'</small></span><span class="txt"><b>'+esc(e.title)+'</b><span>'+relDay(diffDays(t,d))+(e.place?' · '+esc(e.place):'')+'</span></span></button>'}).join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Termine eingetragen. Tippe auf einen Tag und dann auf „+ Termin“.</p>')+'</div>';
+  html+='<div class="sub"><h3 style="margin:0">Liste ab heute</h3><div class="agenda" id="agenda"></div><div class="agmore" id="agMore"></div></div>';
   box.innerHTML=html;
   $('#mPrev').onclick=()=>{S.calMonth=new Date(y,mo-1,1);renderTermine()};
   $('#mNext').onclick=()=>{S.calMonth=new Date(y,mo+1,1);renderTermine()};
@@ -566,6 +581,36 @@ function renderTermine(){
   box.querySelectorAll('[data-day]').forEach(b=>b.addEventListener('click',()=>{S.calSel=b.dataset.day;const d=parse(S.calSel);if(d.getMonth()!==mo)S.calMonth=new Date(d.getFullYear(),d.getMonth(),1);renderTermine()}));
   box.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
   const ae=$('#addEv');if(ae)ae.onclick=()=>openEventSheet(null,S.calSel);
+  renderAgenda();
+}
+function isoWeek(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()+3-((d.getDay()+6)%7));const w1=new Date(x.getFullYear(),0,4);return 1+Math.round(((x-w1)/864e5-3+((w1.getDay()+6)%7))/7)}
+function agBlock(it){
+  if(it.kind==='ev'){const e=it.e;return '<button class="agb" style="--c:var(--accent)" data-ev="'+esc(e.id)+'"><b>'+esc(e.title)+'</b><span>'+(e.time?esc(e.time)+' Uhr':'Ganztägig')+(e.place?' · '+esc(e.place):'')+'</span><span>'+(e.persons&&e.persons.length?'Mit '+esc(e.persons.join(', ')):'Für alle')+'</span></button>'}
+  if(it.kind==='bd')return '<div class="agb" style="--c:var(--sun)"><b>🎂 '+esc(it.b.name)+' hat Geburtstag</b><span>Ganztägig'+(it.age>0?' · wird '+it.age:'')+'</span></div>';
+  return '<div class="agb" style="--c:'+it.bin.c+'"><b>'+it.bin.n+'</b><span>Müllabfuhr · Am Heeschberg 6</span><span>Tonne am Vorabend rausstellen</span></div>';
+}
+/* Tagesliste ab heute, lädt beim Scrollen weitere Tage nach (bis 10 Jahre) */
+function renderAgenda(){
+  const box=$('#agenda'),more=$('#agMore');if(!box)return;
+  const t=today(),cap=diffDays(t,new Date(t.getFullYear()+MAXY,t.getMonth()+1,0));
+  const n=Math.min(S.agDays,cap);let html='',lastWeek=null;
+  for(let i=0;i<=n;i++){
+    const d=addDays(t,i),its=itemsOn(d);
+    if(!its.length&&i>0)continue;
+    const w=isoWeek(d);
+    if(w!==lastWeek&&lastWeek!==null)html+='<p class="agweek">KW '+w+(d.getFullYear()!==t.getFullYear()?' · '+d.getFullYear():'')+'</p>';
+    lastWeek=w;
+    html+='<div class="agday'+(i===0?' is-today':'')+'"><div class="agdate"><small>'+WD[d.getDay()].slice(0,2)+'.</small><b>'+d.getDate()+'</b>'+(d.getDate()===1||i===0?'<small>'+MO[d.getMonth()].slice(0,3)+'</small>':'')+'</div><div class="agitems">'+(its.length?its.map(agBlock).join(''):'<div class="agb empty" style="--c:var(--line)"><span>Heute nichts eingetragen</span></div>')+'</div></div>';
+  }
+  box.innerHTML=html;
+  box.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  const done=n>=cap;
+  more.textContent=done?'Ende der Liste: 10 Jahre im Voraus':'Weitere Tage werden geladen …';
+  if(S.agObs)S.agObs.disconnect();S.agObs=null;
+  if(!done&&'IntersectionObserver' in window){
+    S.agObs=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){S.agObs.disconnect();S.agDays+=90;renderAgenda()}},{rootMargin:'400px'});
+    S.agObs.observe(more);
+  }
 }
 function renderGeb(){
   const t=today();
