@@ -1,0 +1,42 @@
+name: Push-Nachrichten
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: push
+  cancel-in-progress: false
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Europe/Berlin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/push
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Abhängigkeiten
+        working-directory: .github/push
+        run: npm install --no-save --no-audit --no-fund web-push@3.6.7
+      - name: Erinnerungen prüfen und senden
+        working-directory: .github/push
+        env:
+          PUSH_GEHEIM: ${{ secrets.PUSH_GEHEIM }}
+        run: node send.mjs
+      # GitHub pausiert Zeitpläne nach 60 Tagen ohne Änderungen im Repo; einmal im Monat neu einschalten.
+      - name: Zeitplan wach halten
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date +%d)" = "01" ] && [ "$(date +%H)" = "04" ] && [ "$(date +%M)" -lt 10 ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/push.yml/disable"
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/push.yml/enable"
+          fi

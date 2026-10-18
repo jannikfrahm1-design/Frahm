@@ -316,7 +316,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={push:'off',page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -747,8 +747,54 @@ function renderFamily(){
   '<div class="card"><h3>Wochen-Rangliste · seit Montag</h3>'+(rk.length?'<ol class="rank">'+rk.map((r,i)=>'<li><span class="pos">'+(i+1)+'</span><div><b>'+esc(r[0])+'</b><div class="bar"><i style="width:'+Math.round(r[1]/max*100)+'%"></i></div></div><span class="pts">'+r[1]+' P.</span></li>').join('')+'</ol><p class="small muted" style="margin:12px 0 0">Jede abgehakte Aufgabe gibt einen Punkt.</p>':'<p class="small muted" style="margin:0">Noch keine Punkte diese Woche. Jede abgehakte Aufgabe gibt einen Punkt.</p>')+'</div>'+
   '<div class="people">'+list.map(x=>'<div class="person'+(x.days===0?' bday':'')+'"><span class="av" style="--c:'+x.p.c+'">'+(x.p.dog?'<span style="width:24px;height:24px;display:block">'+ICON.paw+'</span>':x.p.n[0])+'</span><div class="txt"><b>'+x.p.n+'</b><span class="small muted">'+x.p.role+' · '+age(x.p)+' Jahre · *'+parse(x.p.b).toLocaleDateString('de-DE')+'</span></div><div class="bd"><strong>'+(x.days===0?'Heute! 🎉':x.days+' T.')+'</strong>bis Geburtstag</div></div>').join('')+'</div>'+
   '<div class="card"><h3>Nächste Geburtstage</h3><ul class="open-list">'+list.slice().sort((a,b)=>a.days-b.days).map(x=>'<li><span>'+x.p.n+' wird '+x.turns+'</span><span class="muted small">'+fmtShort(x.date)+'</span></li>').join('')+'</ul></div>'+
+  pushCard()+
   '<div class="card"><h3>Wer benutzt dieses Handy?</h3><p class="small muted" style="margin:0 0 10px">Wird beim Abhaken vorausgewählt.</p><div class="chips">'+FAMILY.filter(p=>!p.dog).map(p=>'<button class="chip" data-n="'+p.n+'" aria-pressed="'+(S.name===p.n)+'">'+p.n+'</button>').join('')+'</div></div>';
-  el.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{S.name=b.dataset.n;lsSet('frahm-name',S.name);render();toast('Hallo '+S.name+'!')}));
+  el.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{S.name=b.dataset.n;lsSet('frahm-name',S.name);render();toast('Hallo '+S.name+'!');if(S.push==='on')pushSave()}));
+  const pb=$('#pushOn');if(pb)pb.onclick=pushEnable;
+  const po=$('#pushOff');if(po)po.onclick=pushDisable;
+}
+
+/* ---------- Push-Nachrichten ----------
+   Das Handy meldet sich hier an; der GitHub-Dienst (.github/push/send.mjs) schickt die Nachrichten. */
+const VAPID_PUBLIC='BCykyafMtjHtYpcG6osj5RreXd3v-Er9dkyIA5PWhy_DGWOPJDvrJfBwVSUi8kQF-NWgjbqqrSfBzEKRlVJrhg0';
+function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window}
+function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
+function isStandalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
+function pushId(ep){let h=2166136261;for(let i=0;i<ep.length;i++){h^=ep.charCodeAt(i);h=Math.imul(h,16777619)}return 'p'+(h>>>0).toString(36)+ep.length.toString(36)}
+function b64u(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+function pushCard(){
+  let body;
+  if(S.push==='on')body='<p class="small muted" style="margin:0 0 10px">Dieses Handy bekommt Nachrichten'+(S.name?' für '+esc(S.name):'')+': Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.</p><button class="btn ghost" id="pushOff">Ausschalten</button>';
+  else if(!pushSupported())body='<p class="small muted" style="margin:0">'+(isIOS()&&!isStandalone()?'Auf dem iPhone geht das nur, wenn du Frahm vom Home-Bildschirm aus öffnest (ab iOS 16.4). In Safari: Teilen, dann „Zum Home-Bildschirm“.':'Dieses Handy oder dieser Browser kann leider keine Push-Nachrichten empfangen.')+'</p>';
+  else if(Notification.permission==='denied')body='<p class="small muted" style="margin:0">Nachrichten sind für Frahm in den Handy-Einstellungen blockiert. Dort unter Mitteilungen erlauben, dann hier einschalten.</p>';
+  else body='<p class="small muted" style="margin:0 0 10px">Erinnert an Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.'+(S.name?'':' Wähle unten am besten zuerst aus, wer dieses Handy benutzt.')+'</p><button class="btn" id="pushOn"'+(S.canWrite?'':' disabled')+'>Benachrichtigungen erlauben</button>';
+  return '<div class="card"><h3>Push-Nachrichten</h3>'+body+'</div>';
+}
+async function pushReg(){return navigator.serviceWorker.ready}
+async function pushSave(){
+  try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(!sub||!S.db)return false;
+    const j=sub.toJSON();await S.db.collection('push').doc(pushId(j.endpoint)).set({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,name:S.name||'',ua:navigator.userAgent.slice(0,120),at:Date.now()});return true}catch(e){handleWriteError(e);return false}
+}
+async function pushEnable(){
+  const b=$('#pushOn');if(b){b.disabled=true;b.textContent='Einen Moment …'}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){toast('Nachrichten wurden nicht erlaubt');S.push='off';renderFamily();return}
+    const r=await pushReg();
+    let sub=await r.pushManager.getSubscription();
+    if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
+    S.push='on';
+    if(await pushSave()){toast('Push-Nachrichten sind an');r.showNotification('Frahm',{body:'So sehen die Nachrichten aus. 👍',icon:'icon-192.png',tag:'frahm-test'})}
+  }catch(e){toast('Hat nicht geklappt, bitte nochmal versuchen');S.push='off'}
+  renderFamily();
+}
+async function pushDisable(){
+  try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(sub){const id=pushId(sub.endpoint);await sub.unsubscribe();if(S.db)await S.db.collection('push').doc(id).delete()}}catch(e){}
+  S.push='off';renderFamily();toast('Push-Nachrichten sind aus');
+}
+async function pushInit(){
+  if(!pushSupported()||Notification.permission!=='granted')return;
+  try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(sub){S.push='on';renderFamily();pushSave()}}catch(e){}
 }
 
 function renderShop(){
@@ -879,7 +925,7 @@ function connect(){
   if(!firebase.apps.length){firebase.initializeApp(FIREBASE_CONFIG);try{firebase.firestore().enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}}
   const base=firebase.firestore().collection('families').doc(code);
   S.db={collection:n=>base.collection(n)};
-  S.loading=false;S.canWrite=true;S.readOnlyReason='';render();
+  S.loading=false;S.canWrite=true;S.readOnlyReason='';render();pushInit();
   const fail=e=>{if(e&&e.code==='permission-denied'){unsubs.forEach(u=>u());unsubs=[];S.db=null;askCode('Der Familien-Code stimmt nicht. Bitte neu eingeben.')}};
   const min=key(addDays(today(),-HISTORY-1));
   unsubs.push(base.collection('done').where('date','>=',min).onSnapshot(snap=>{
