@@ -316,7 +316,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={push:'off',page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={push:'off',pushCfg:null,page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -752,11 +752,13 @@ function renderFamily(){
   el.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{S.name=b.dataset.n;lsSet('frahm-name',S.name);render();toast('Hallo '+S.name+'!');if(S.push==='on')pushSave()}));
   const pb=$('#pushOn');if(pb)pb.onclick=pushEnable;
   const po=$('#pushOff');if(po)po.onclick=pushDisable;
+  const ps=$('#pushSetup');if(ps)ps.onclick=pushSetup;
 }
 
 /* ---------- Push-Nachrichten ----------
-   Das Handy meldet sich hier an; der GitHub-Dienst (.github/push/send.mjs) schickt die Nachrichten. */
-const VAPID_PUBLIC='BCykyafMtjHtYpcG6osj5RreXd3v-Er9dkyIA5PWhy_DGWOPJDvrJfBwVSUi8kQF-NWgjbqqrSfBzEKRlVJrhg0';
+   Das Handy meldet sich hier an; der GitHub-Dienst (.github/push/send.mjs) schickt die Nachrichten.
+   Das Schlüsselpaar entsteht einmalig hier im Browser: der öffentliche Teil kommt nach config/push,
+   der geheime nur in das GitHub-Secret PUSH_GEHEIM. */
 function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window}
 function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
 function isStandalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
@@ -764,7 +766,9 @@ function pushId(ep){let h=2166136261;for(let i=0;i<ep.length;i++){h^=ep.charCode
 function b64u(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))}
 function pushCard(){
   let body;
-  if(S.push==='on')body='<p class="small muted" style="margin:0 0 10px">Dieses Handy bekommt Nachrichten'+(S.name?' für '+esc(S.name):'')+': Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.</p><button class="btn ghost" id="pushOff">Ausschalten</button>';
+  if(S.pushCfg===null&&S.canWrite)body='<p class="small muted" style="margin:0">Wird geladen …</p>';
+  else if(!S.pushCfg||!S.pushCfg.vapidPublic)body='<p class="small muted" style="margin:0 0 10px">Push-Nachrichten sind noch nicht eingerichtet. Das muss nur einmal gemacht werden, für alle Handys zusammen.</p><button class="btn" id="pushSetup"'+(S.canWrite?'':' disabled')+'>Einmal einrichten</button>';
+  else if(S.push==='on')body='<p class="small muted" style="margin:0 0 10px">Dieses Handy bekommt Nachrichten'+(S.name?' für '+esc(S.name):'')+': Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.</p><button class="btn ghost" id="pushOff">Ausschalten</button>';
   else if(!pushSupported())body='<p class="small muted" style="margin:0">'+(isIOS()&&!isStandalone()?'Auf dem iPhone geht das nur, wenn du Frahm vom Home-Bildschirm aus öffnest (ab iOS 16.4). In Safari: Teilen, dann „Zum Home-Bildschirm“.':'Dieses Handy oder dieser Browser kann leider keine Push-Nachrichten empfangen.')+'</p>';
   else if(Notification.permission==='denied')body='<p class="small muted" style="margin:0">Nachrichten sind für Frahm in den Handy-Einstellungen blockiert. Dort unter Mitteilungen erlauben, dann hier einschalten.</p>';
   else body='<p class="small muted" style="margin:0 0 10px">Erinnert an Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.'+(S.name?'':' Wähle unten am besten zuerst aus, wer dieses Handy benutzt.')+'</p><button class="btn" id="pushOn"'+(S.canWrite?'':' disabled')+'>Benachrichtigungen erlauben</button>';
@@ -782,7 +786,7 @@ async function pushEnable(){
     if(perm!=='granted'){toast('Nachrichten wurden nicht erlaubt');S.push='off';renderFamily();return}
     const r=await pushReg();
     let sub=await r.pushManager.getSubscription();
-    if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
+    if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(S.pushCfg.vapidPublic)});
     S.push='on';
     if(await pushSave()){toast('Push-Nachrichten sind an');r.showNotification('Frahm',{body:'So sehen die Nachrichten aus. 👍',icon:'icon-192.png',tag:'frahm-test'})}
   }catch(e){toast('Hat nicht geklappt, bitte nochmal versuchen');S.push='off'}
@@ -792,9 +796,25 @@ async function pushDisable(){
   try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(sub){const id=pushId(sub.endpoint);await sub.unsubscribe();if(S.db)await S.db.collection('push').doc(id).delete()}}catch(e){}
   S.push='off';renderFamily();toast('Push-Nachrichten sind aus');
 }
+function b64e(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function pushSetup(){
+  let pub,priv;
+  try{const k=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']);
+    pub=b64e(await crypto.subtle.exportKey('raw',k.publicKey));priv=(await crypto.subtle.exportKey('jwk',k.privateKey)).d}catch(e){toast('Dieser Browser kann das leider nicht');return}
+  const secret=(lsGet('frahm-code')||'')+'|'+priv;
+  const host=$('#sheetHost');
+  host.innerHTML='<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="Push einrichten"><h2 style="font-size:20px">Push einrichten</h2>'+
+    '<p class="small" style="margin:0"><b>1.</b> Diesen geheimen Text kopieren. Niemandem schicken, er gehört nur in GitHub.</p><textarea id="pSecret" readonly rows="3" style="width:100%;box-sizing:border-box;font:13px ui-monospace,monospace;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg)">'+esc(secret)+'</textarea><button class="btn ghost" type="button" id="pCopy">Kopieren</button>'+
+    '<p class="small" style="margin:0"><b>2.</b> GitHub öffnen und anmelden. Bei <b>Name</b> eintragen: <b>PUSH_GEHEIM</b>. Bei <b>Secret</b> den kopierten Text einfügen, dann „Add secret“.</p><a class="btn ghost" href="https://github.com/jannikfrahm1-design/Frahm/settings/secrets/actions/new" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">GitHub öffnen</a>'+
+    '<p class="small" style="margin:0"><b>3.</b> Zurück hierher und bestätigen.</p><div class="row"><button class="btn" type="button" id="pDone" style="flex:1">In GitHub gespeichert</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></div></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#pCopy').onclick=async()=>{try{await navigator.clipboard.writeText(secret);toast('Kopiert')}catch(e){const t=$('#pSecret');t.focus();t.select();toast('Text markiert, jetzt kopieren')}};
+  $('#pDone').onclick=async()=>{try{await S.db.collection('config').doc('push').set({vapidPublic:pub,at:Date.now(),by:S.name||''});close();toast('Eingerichtet! Jetzt Benachrichtigungen erlauben')}catch(e){handleWriteError(e)}};
+}
 async function pushInit(){
-  if(!pushSupported()||Notification.permission!=='granted')return;
-  try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(sub){S.push='on';renderFamily();pushSave()}}catch(e){}
+  if(!S.pushCfg||!S.pushCfg.vapidPublic||!pushSupported()||Notification.permission!=='granted')return;
+  try{const r=await pushReg(),sub=await r.pushManager.getSubscription();if(sub&&S.push!=='on'){S.push='on';renderFamily();pushSave()}}catch(e){}
 }
 
 function renderShop(){
@@ -925,7 +945,7 @@ function connect(){
   if(!firebase.apps.length){firebase.initializeApp(FIREBASE_CONFIG);try{firebase.firestore().enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}}
   const base=firebase.firestore().collection('families').doc(code);
   S.db={collection:n=>base.collection(n)};
-  S.loading=false;S.canWrite=true;S.readOnlyReason='';render();pushInit();
+  S.loading=false;S.canWrite=true;S.readOnlyReason='';render();
   const fail=e=>{if(e&&e.code==='permission-denied'){unsubs.forEach(u=>u());unsubs=[];S.db=null;askCode('Der Familien-Code stimmt nicht. Bitte neu eingeben.')}};
   const min=key(addDays(today(),-HISTORY-1));
   unsubs.push(base.collection('done').where('date','>=',min).onSnapshot(snap=>{
@@ -934,6 +954,11 @@ function connect(){
   },fail));
   unsubs.push(base.collection('config').doc('muell').onSnapshot(snap=>{
     S.muell=snap.exists?snap.data():null;renderCal();renderHome();
+  },fail));
+  unsubs.push(base.collection('config').doc('push').onSnapshot(snap=>{
+    const old=S.pushCfg&&S.pushCfg.vapidPublic;S.pushCfg=snap.exists?snap.data():{};
+    if(old&&old!==S.pushCfg.vapidPublic&&S.push==='on'){S.push='off';pushReg().then(r=>r.pushManager.getSubscription()).then(s=>s&&s.unsubscribe()).catch(()=>{})}
+    renderFamily();pushInit();
   },fail));
   unsubs.push(base.collection('events').onSnapshot(snap=>{
     S.events=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(e=>e.title&&/^\d{4}-\d\d-\d\d$/.test(e.date||''));renderCal();renderHome();

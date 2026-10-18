@@ -1,17 +1,16 @@
 // Prüft alle paar Minuten, ob eine Erinnerung fällig ist, und schickt sie als Push-Nachricht.
 // Läuft als GitHub Action (.github/workflows/push.yml) mit TZ=Europe/Berlin.
-// Secret PUSH_GEHEIM = "<Familien-Code>|<VAPID Private Key>". DRY=1 zeigt nur an, was gesendet würde.
+// Secret PUSH_GEHEIM = "<Familien-Code>|<VAPID Private Key>", erzeugt in der App unter Familie > Push-Nachrichten.
+// Der passende öffentliche Schlüssel liegt in config/push. DRY=1 zeigt nur an, was gesendet würde.
 import webpush from 'web-push';
 
 const API_KEY = 'AIzaSyA40ZFUpG5i5G8337ItJ4yxnHyGPW4iKgw';
 const PROJECT = 'frahm-a5202';
-const VAPID_PUBLIC = 'BCykyafMtjHtYpcG6osj5RreXd3v-Er9dkyIA5PWhy_DGWOPJDvrJfBwVSUi8kQF-NWgjbqqrSfBzEKRlVJrhg0';
 const APP_URL = 'https://jannikfrahm1-design.github.io/Frahm/';
 const DRY = !!process.env.DRY;
 
 const [CODE, VAPID_PRIVATE] = String(process.env.PUSH_GEHEIM || '').split('|').map(s => s.trim());
 if (!CODE || !VAPID_PRIVATE) { console.log('Secret PUSH_GEHEIM fehlt, nichts zu tun.'); process.exit(0); }
-webpush.setVapidDetails('mailto:frahm@users.noreply.github.com', VAPID_PUBLIC, VAPID_PRIVATE);
 
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/families/${CODE}`;
 
@@ -57,6 +56,10 @@ async function claim(id, date) {
   throw new Error(`pushlog ${id}: ${r.status} ${await r.text()}`);
 }
 async function del(path) { if (!DRY) await fetch(`${BASE}/${path}?key=${API_KEY}`, { method: 'DELETE' }); }
+
+const pushCfg = await get('config/push');
+if (!pushCfg || !pushCfg.vapidPublic) { console.log('Push ist in der App noch nicht eingerichtet.'); process.exit(0); }
+webpush.setVapidDetails('mailto:frahm@users.noreply.github.com', pushCfg.vapidPublic, VAPID_PRIVATE);
 
 /* ---------- Datum ---------- */
 const pad = n => String(n).padStart(2, '0');
