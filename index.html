@@ -211,6 +211,9 @@ a{color:var(--accent);font-weight:600}
 .agdate small{display:block;font-size:13px;color:var(--muted);font-weight:600}
 .agdate b{display:block;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.15;font-variant-numeric:tabular-nums}
 .agday.is-today .agdate small{color:var(--accent)}
+.agdate .agmon{font-size:12px;margin-top:1px}
+button.agb,button.ev{cursor:pointer;font:inherit;color:inherit}
+button.agb:active,button.ev:active{transform:scale(.98)}
 .agday.is-today .agdate b{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin:2px auto 0;font-size:20px}
 .agitems{display:flex;flex-direction:column;gap:8px;min-width:0}
 .agb{display:block;width:100%;box-sizing:border-box;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:14px;padding:12px 14px}
@@ -454,7 +457,7 @@ function renderHome(){
     '</div>';
   el.innerHTML=html;
   bindGo(el);
-  el.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  bindItems(el);
 }
 function tile(i,ic,b,s,tab){return '<button class="tile" data-go="'+i+'"'+(tab?' data-tab="'+tab+'"':'')+'><span class="ic">'+ic+'</span><b>'+b+'</b><span>'+esc(s)+'</span></button>'}
 
@@ -540,8 +543,8 @@ function itemsOn(d){
 function longDate(d){return WD[d.getDay()]+', '+d.getDate()+'. '+MO[d.getMonth()]+' '+d.getFullYear()}
 function evRow(it){
   if(it.kind==='ev'){const e=it.e;return '<button class="ev" data-ev="'+esc(e.id)+'"><span class="tm">'+(e.time?esc(e.time):'<small>ganztägig</small>')+'</span><span class="txt"><b>'+esc(e.title)+'</b>'+(e.place?'<span>Ort: '+esc(e.place)+'</span>':'')+(e.persons&&e.persons.length?'<span>Mit: '+esc(e.persons.join(', '))+'</span>':'')+'</span></button>'}
-  if(it.kind==='bd')return '<div class="ev bd"><span class="tm">🎂</span><span class="txt"><b>'+esc(it.b.name)+' hat Geburtstag</b>'+(it.age>0?'<span>wird '+it.age+'</span>':'')+'</span></div>';
-  return '<div class="ev"><span class="tm"><span class="can" style="--c:'+it.bin.c+';width:18px;height:22px;display:block;margin:4px 0 0 6px"></span></span><span class="txt"><b>'+it.bin.n+'</b><span>Müllabfuhr · Tonne am Vorabend rausstellen</span></span></div>';
+  if(it.kind==='bd')return '<button class="ev bd" data-bd="'+esc(it.b.id)+'"><span class="tm">🎂</span><span class="txt"><b>'+esc(it.b.name)+' hat Geburtstag</b>'+(it.age>0?'<span>wird '+it.age+'</span>':'')+'</span></button>';
+  return '<button class="ev" data-muell="1"><span class="tm"><span class="can" style="--c:'+it.bin.c+';width:18px;height:22px;display:block;margin:4px 0 0 6px"></span></span><span class="txt"><b>'+it.bin.n+'</b><span>Müllabfuhr · Tonne am Vorabend rausstellen</span></span></button>';
 }
 function renderCal(){
   const el=$('#p-kalender');
@@ -579,15 +582,38 @@ function renderTermine(){
   $('#mNext').onclick=()=>{S.calMonth=new Date(y,mo+1,1);renderTermine()};
   const ct=$('#calToday');if(ct)ct.onclick=()=>{S.calSel=key(t);S.calMonth=new Date(t.getFullYear(),t.getMonth(),1);renderTermine()};
   box.querySelectorAll('[data-day]').forEach(b=>b.addEventListener('click',()=>{S.calSel=b.dataset.day;const d=parse(S.calSel);if(d.getMonth()!==mo)S.calMonth=new Date(d.getFullYear(),d.getMonth(),1);renderTermine()}));
-  box.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  bindItems(box);
   const ae=$('#addEv');if(ae)ae.onclick=()=>openEventSheet(null,S.calSel);
   renderAgenda();
+}
+function bindItems(el){
+  el.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  el.querySelectorAll('[data-bd]').forEach(b=>b.addEventListener('click',()=>openBdaySheet(b.dataset.bd)));
+  el.querySelectorAll('[data-muell]').forEach(b=>b.addEventListener('click',()=>{S.calTab='muell';renderCal();go(1);$('#p-kalender').scrollTo({top:0,behavior:'smooth'});toast('Hier kannst du die Müll-Termine ändern')}));
+}
+function openBdaySheet(id){
+  const b=bdaysAll().find(x=>x.id===id);if(!b)return;
+  const host=$('#sheetHost'),editable=S.canWrite&&S.bdaysLoaded;
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="bdForm" aria-label="Geburtstag"><h2 style="font-size:20px">🎂 Geburtstag</h2>'+
+    '<label class="f">Name<input id="bdName" maxlength="40" value="'+esc(b.name)+'" '+(editable?'':'disabled')+'></label>'+
+    '<label class="f">Geburtsdatum<input type="date" id="bdDate" value="'+esc(b.date)+'" max="'+key(today())+'" '+(editable?'':'disabled')+'></label>'+
+    '<div class="row">'+(editable?'<button class="btn" type="submit" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="bdDel" style="color:var(--danger)">Löschen</button>':'')+'<button class="btn ghost" type="button" id="cancel">Schließen</button></div></form></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
+  if(!editable)return;
+  $('#bdDel').onclick=async()=>{const dl=$('#bdDel');if(!dl.dataset.armed){dl.dataset.armed='1';dl.textContent='Wirklich löschen?';return}close();await deleteBday(b.id)};
+  $('#bdForm').addEventListener('submit',async x=>{
+    x.preventDefault();const n=$('#bdName').value.trim(),d=$('#bdDate').value;
+    if(!n||!/^\d{4}-\d\d-\d\d$/.test(d)){toast('Bitte Name und Datum eingeben');return}
+    close();try{await S.db.collection('birthdays').doc(b.id).set({name:n,date:d,at:b.at||Date.now()});toast('Geburtstag geändert')}catch(err){handleWriteError(err)}
+  });
 }
 function isoWeek(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()+3-((d.getDay()+6)%7));const w1=new Date(x.getFullYear(),0,4);return 1+Math.round(((x-w1)/864e5-3+((w1.getDay()+6)%7))/7)}
 function agBlock(it){
   if(it.kind==='ev'){const e=it.e;return '<button class="agb" style="--c:var(--accent)" data-ev="'+esc(e.id)+'"><b>'+esc(e.title)+'</b><span>'+(e.time?esc(e.time)+' Uhr':'Ganztägig')+(e.place?' · '+esc(e.place):'')+'</span><span>'+(e.persons&&e.persons.length?'Mit '+esc(e.persons.join(', ')):'Für alle')+'</span></button>'}
-  if(it.kind==='bd')return '<div class="agb" style="--c:var(--sun)"><b>🎂 '+esc(it.b.name)+' hat Geburtstag</b><span>Ganztägig'+(it.age>0?' · wird '+it.age:'')+'</span></div>';
-  return '<div class="agb" style="--c:'+it.bin.c+'"><b>'+it.bin.n+'</b><span>Müllabfuhr · Am Heeschberg 6</span><span>Tonne am Vorabend rausstellen</span></div>';
+  if(it.kind==='bd')return '<button class="agb" style="--c:var(--sun)" data-bd="'+esc(it.b.id)+'"><b>🎂 '+esc(it.b.name)+' hat Geburtstag</b><span>Ganztägig'+(it.age>0?' · wird '+it.age:'')+'</span></button>';
+  return '<button class="agb" style="--c:'+it.bin.c+'" data-muell="1"><b>'+it.bin.n+'</b><span>Müllabfuhr · Am Heeschberg 6</span><span>Tonne am Vorabend rausstellen</span></button>';
 }
 /* Tagesliste ab heute, lädt beim Scrollen weitere Tage nach (bis 10 Jahre) */
 function renderAgenda(){
@@ -600,10 +626,10 @@ function renderAgenda(){
     const w=isoWeek(d);
     if(w!==lastWeek&&lastWeek!==null)html+='<p class="agweek">KW '+w+(d.getFullYear()!==t.getFullYear()?' · '+d.getFullYear():'')+'</p>';
     lastWeek=w;
-    html+='<div class="agday'+(i===0?' is-today':'')+'"><div class="agdate"><small>'+WD[d.getDay()].slice(0,2)+'.</small><b>'+d.getDate()+'</b>'+(d.getDate()===1||i===0?'<small>'+MO[d.getMonth()].slice(0,3)+'</small>':'')+'</div><div class="agitems">'+(its.length?its.map(agBlock).join(''):'<div class="agb empty" style="--c:var(--line)"><span>Heute nichts eingetragen</span></div>')+'</div></div>';
+    html+='<div class="agday'+(i===0?' is-today':'')+'"><div class="agdate"><small>'+WD[d.getDay()].slice(0,2)+'.</small><b>'+d.getDate()+'</b>'+'<small class="agmon">'+(MO[d.getMonth()].length>4?MO[d.getMonth()].slice(0,3).toLowerCase()+'.':MO[d.getMonth()].toLowerCase())+'</small>'+'</div><div class="agitems">'+(its.length?its.map(agBlock).join(''):'<div class="agb empty" style="--c:var(--line)"><span>Heute nichts eingetragen</span></div>')+'</div></div>';
   }
   box.innerHTML=html;
-  box.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>openEventDetail(b.dataset.ev)));
+  bindItems(box);
   const done=n>=cap;
   more.textContent=done?'Ende der Liste: 10 Jahre im Voraus':'Weitere Tage werden geladen …';
   if(S.agObs)S.agObs.disconnect();S.agObs=null;
@@ -616,8 +642,8 @@ function renderGeb(){
   const t=today();
   const list=bdaysAll().map(b=>{const x=parse(b.date);let n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n=new Date(t.getFullYear()+1,x.getMonth(),x.getDate());return {b,n,days:diffDays(t,n),turns:n.getFullYear()-x.getFullYear()}}).sort((a,b)=>a.days-b.days);
   let html='<p class="small muted" style="margin:0">Geburtstage stehen jedes Jahr automatisch im Kalender.</p>'+statusNote();
-  html+=list.length?'<div class="evlist">'+list.map(x=>'<div class="ev bd"><span class="tm">🎂</span><span class="txt"><b>'+esc(x.b.name)+'</b><span>'+parse(x.b.date).toLocaleDateString('de-DE')+' · wird '+x.turns+' · '+(x.days===0?'heute!':relDay(x.days))+'</span></span>'+(S.canWrite&&S.bdaysLoaded?'<button class="del" data-bdel="'+esc(x.b.id)+'" aria-label="'+esc(x.b.name)+' löschen">✕</button>':'')+'</div>').join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Geburtstage eingetragen.</p>';
-  const box=$('#gebList');box.innerHTML=html;
+  html+=list.length?'<div class="evlist">'+list.map(x=>'<div class="ev bd"><span class="tm">🎂</span><span class="txt"'+(S.canWrite&&S.bdaysLoaded?' data-bd="'+esc(x.b.id)+'" role="button" tabindex="0" style="cursor:pointer"':'')+'><b>'+esc(x.b.name)+'</b><span>'+parse(x.b.date).toLocaleDateString('de-DE')+' · wird '+x.turns+' · '+(x.days===0?'heute!':relDay(x.days))+'</span></span>'+(S.canWrite&&S.bdaysLoaded?'<button class="del" data-bdel="'+esc(x.b.id)+'" aria-label="'+esc(x.b.name)+' löschen">✕</button>':'')+'</div>').join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Geburtstage eingetragen.</p>';
+  const box=$('#gebList');box.innerHTML=html;bindItems(box);
   box.querySelectorAll('[data-bdel]').forEach(b=>b.addEventListener('click',()=>{
     if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Löschen?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='✕'}},3000);return}
     deleteBday(b.dataset.bdel);
