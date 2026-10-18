@@ -767,11 +767,11 @@ function b64u(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,
 function pushCard(){
   let body;
   if(S.pushCfg===null&&S.canWrite)body='<p class="small muted" style="margin:0">Wird geladen …</p>';
-  else if(!S.pushCfg||!S.pushCfg.vapidPublic)body='<p class="small muted" style="margin:0 0 10px">Push-Nachrichten sind noch nicht eingerichtet. Das muss nur einmal gemacht werden, für alle Handys zusammen.</p><button class="btn" id="pushSetup"'+(S.canWrite?'':' disabled')+'>Einmal einrichten</button>';
-  else if(S.push==='on')body='<p class="small muted" style="margin:0 0 10px">Dieses Handy bekommt Nachrichten'+(S.name?' für '+esc(S.name):'')+': Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.</p><button class="btn ghost" id="pushOff">Ausschalten</button>';
-  else if(!pushSupported())body='<p class="small muted" style="margin:0">'+(isIOS()&&!isStandalone()?'Auf dem iPhone geht das nur, wenn du Frahm vom Home-Bildschirm aus öffnest (ab iOS 16.4). In Safari: Teilen, dann „Zum Home-Bildschirm“.':'Dieses Handy oder dieser Browser kann leider keine Push-Nachrichten empfangen.')+'</p>';
-  else if(Notification.permission==='denied')body='<p class="small muted" style="margin:0">Nachrichten sind für Frahm in den Handy-Einstellungen blockiert. Dort unter Mitteilungen erlauben, dann hier einschalten.</p>';
-  else body='<p class="small muted" style="margin:0 0 10px">Erinnert an Aufgaben mit Frist, Müll am Vorabend, Geburtstage und Termine.'+(S.name?'':' Wähle unten am besten zuerst aus, wer dieses Handy benutzt.')+'</p><button class="btn" id="pushOn"'+(S.canWrite?'':' disabled')+'>Benachrichtigungen erlauben</button>';
+  else if(!S.pushCfg||!S.pushCfg.vapidPublic)body='<button class="btn" id="pushSetup"'+(S.canWrite?'':' disabled')+'>Einmal einrichten</button>';
+  else if(S.push==='on')body='<p class="small muted" style="margin:0 0 10px">An'+(S.name?' für '+esc(S.name):'')+'</p><button class="btn ghost" id="pushOff">Ausschalten</button>';
+  else if(!pushSupported())body='<p class="small muted" style="margin:0">'+(isIOS()&&!isStandalone()?'Nur in der App vom Home-Bildschirm.':'Hier nicht möglich.')+'</p>';
+  else if(Notification.permission==='denied')body='<p class="small muted" style="margin:0">In den Handy-Einstellungen blockiert.</p>';
+  else body='<button class="btn" id="pushOn"'+(S.canWrite?'':' disabled')+'>Benachrichtigungen erlauben</button>';
   return '<div class="card"><h3>Push-Nachrichten</h3>'+body+'</div>';
 }
 async function pushReg(){return navigator.serviceWorker.ready}
@@ -804,9 +804,9 @@ async function pushSetup(){
   const secret=(lsGet('frahm-code')||'')+'|'+priv;
   const host=$('#sheetHost');
   host.innerHTML='<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="Push einrichten"><h2 style="font-size:20px">Push einrichten</h2>'+
-    '<p class="small" style="margin:0"><b>1.</b> Diesen geheimen Text kopieren. Niemandem schicken, er gehört nur in GitHub.</p><textarea id="pSecret" readonly rows="3" style="width:100%;box-sizing:border-box;font:13px ui-monospace,monospace;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg)">'+esc(secret)+'</textarea><button class="btn ghost" type="button" id="pCopy">Kopieren</button>'+
-    '<p class="small" style="margin:0"><b>2.</b> GitHub öffnen und anmelden. Bei <b>Name</b> eintragen: <b>PUSH_GEHEIM</b>. Bei <b>Secret</b> den kopierten Text einfügen, dann „Add secret“.</p><a class="btn ghost" href="https://github.com/jannikfrahm1-design/Frahm/settings/secrets/actions/new" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">GitHub öffnen</a>'+
-    '<p class="small" style="margin:0"><b>3.</b> Zurück hierher und bestätigen.</p><div class="row"><button class="btn" type="button" id="pDone" style="flex:1">In GitHub gespeichert</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></div></div>';
+    '<textarea id="pSecret" readonly rows="3" style="width:100%;box-sizing:border-box;font:13px ui-monospace,monospace;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg)">'+esc(secret)+'</textarea><button class="btn ghost" type="button" id="pCopy">Kopieren</button>'+
+    '<a class="btn ghost" href="https://github.com/jannikfrahm1-design/Frahm/settings/secrets/actions/new" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">GitHub öffnen</a>'+
+    '<div class="row"><button class="btn" type="button" id="pDone" style="flex:1">In GitHub gespeichert</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></div></div>';
   const close=()=>{host.innerHTML=''};
   $('#cancel').onclick=close;
   $('#pCopy').onclick=async()=>{try{await navigator.clipboard.writeText(secret);toast('Kopiert')}catch(e){const t=$('#pSecret');t.focus();t.select();toast('Text markiert, jetzt kopieren')}};
