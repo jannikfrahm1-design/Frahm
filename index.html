@@ -198,6 +198,9 @@ a{color:var(--accent);font-weight:600}
 .sheet{max-height:92vh;overflow-y:auto}
 .sheet label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
 .sheet textarea{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px;width:100%;box-sizing:border-box;font-size:16px;min-height:72px;resize:vertical;font-family:inherit}
+.bdf{display:grid;grid-template-columns:.8fr 1.4fr 1.2fr;gap:8px;align-items:end}
+.bdf label{min-width:0}
+.bdf select,.bdf input{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 8px;width:100%;box-sizing:border-box;font-size:16px;min-width:0}
 .sheet .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sheet .two label{min-width:0}
 .detail p{margin:0}
@@ -467,7 +470,7 @@ function renderSearch(){
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:4,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
   if('einkaufsliste einkaufen'.includes(q))res.push({go:4,title:'Einkaufsliste',sub:S.shop.filter(x=>!x.done).length+' offen',tag:'Einkauf'});
   S.events.forEach(e=>{if((e.title+' '+(e.place||'')+' '+(e.persons||[]).join(' ')+' '+(e.desc||'')+' termin kalender').toLowerCase().includes(q)){const d=parse(e.date);res.push({go:1,tab:'termine',day:e.date,title:e.title,sub:fmtShort(d)+(d.getFullYear()!==t.getFullYear()?' '+d.getFullYear():'')+(e.time?' · '+e.time+' Uhr':'')+(e.place?' · '+e.place:''),tag:'Termin'})}});
-  bdaysAll().forEach(b=>{if((b.name+' geburtstag').toLowerCase().includes(q))res.push({go:1,tab:'geburtstage',title:b.name,sub:'Geburtstag am '+parse(b.date).getDate()+'. '+MO[parse(b.date).getMonth()],tag:'Geburtstag'})});
+  bdaysAll().forEach(b=>{if((b.name+' geburtstag').toLowerCase().includes(q))res.push({go:1,tab:'geburtstage',title:b.name,sub:'Geburtstag am '+bdLabel(b),tag:'Geburtstag'})});
   if('kalender termine'.includes(q))res.push({go:1,tab:'termine',title:'Kalender',sub:'Termine, Geburtstage und Müll',tag:'Kalender'});
   if('punkte rangliste'.includes(q))res.push({go:3,title:'Wochen-Rangliste',sub:'Wer hat diese Woche am meisten gemacht?',tag:'Familie'});
   BINS.forEach(b=>{if((b.n+' '+b.sub+' müll tonne abfuhr').toLowerCase().includes(q)){const d=nextPickup(b,t);res.push({go:1,tab:'muell',title:b.n,sub:d?fmtShort(d)+' ('+relDay(diffDays(t,d))+')':'Noch kein Termin eingetragen',tag:'Müll'})}});
@@ -532,11 +535,32 @@ function renderMuell(){
 const MAXY=10;
 function isLeap(y){return (y%4===0&&y%100!==0)||y%400===0}
 function bdaysAll(){return S.bdaysLoaded?S.bdays:FAMILY.map(p=>({id:'f-'+p.n,name:p.n,date:p.b}))}
-function bdayOn(b,d){const x=parse(b.date);if(x.getMonth()!==d.getMonth()||d.getFullYear()<x.getFullYear())return false;let day=x.getDate();if(x.getMonth()===1&&day===29&&!isLeap(d.getFullYear()))day=28;return day===d.getDate()}
+/* Geburtstage: date ist "JJJJ-MM-TT", "0000-MM-TT" wenn das Jahr unbekannt ist */
+function bdParts(b){const a=String(b.date).split('-').map(Number);return {y:a[0]||null,m:a[1]-1,d:a[2]}}
+function bdLabel(b){const p=bdParts(b);return p.d+'. '+MO[p.m]+(p.y?' '+p.y:'')}
+function bdAge(b,year){const p=bdParts(b);return p.y?year-p.y:null}
+function bdNext(b){const t=today(),p=bdParts(b);let day=p.d;const mk=y=>new Date(y,p.m,p.m===1&&day===29&&!isLeap(y)?28:day);let n=mk(t.getFullYear());if(n<t)n=mk(t.getFullYear()+1);return n}
+function bdayOn(b,d){const p=bdParts(b);if(p.m!==d.getMonth()||(p.y&&d.getFullYear()<p.y))return false;let day=p.d;if(p.m===1&&day===29&&!isLeap(d.getFullYear()))day=28;return day===d.getDate()}
+function bdFields(pre,b,dis){
+  const p=b?bdParts(b):{y:null,m:-1,d:0},x=dis?' disabled':'';
+  return '<div class="bdf"><label class="f">Tag<select id="'+pre+'D"'+x+'><option value="">–</option>'+Array.from({length:31},(_,i)=>'<option'+(p.d===i+1?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select></label>'+
+    '<label class="f">Monat<select id="'+pre+'M"'+x+'><option value="">–</option>'+MO.map((m,i)=>'<option value="'+i+'"'+(p.m===i?' selected':'')+'>'+m+'</option>').join('')+'</select></label>'+
+    '<label class="f">Jahr (optional)<input id="'+pre+'Y" inputmode="numeric" maxlength="4" placeholder="z. B. 1960" value="'+(p.y||'')+'"'+x+'></label></div>';
+}
+function bdRead(pre){
+  const d=+$('#'+pre+'D').value,mv=$('#'+pre+'M').value,ys=$('#'+pre+'Y').value.trim();
+  if(!d||mv===''){toast('Bitte Tag und Monat wählen');return null}
+  const m=+mv,maxD=[31,29,31,30,31,30,31,31,30,31,30,31][m];
+  if(d>maxD){toast('Den '+d+'. '+MO[m]+' gibt es nicht');return null}
+  let y=0;
+  if(ys){y=+ys;if(!/^\d{4}$/.test(ys)||y<1900||y>today().getFullYear()){toast('Jahr bitte vierstellig, z. B. 1960, oder leer lassen');return null}
+    if(m===1&&d===29&&!isLeap(y)){toast(y+' hatte keinen 29. Februar');return null}}
+  return String(y).padStart(4,'0')+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
 function itemsOn(d){
   const k=key(d),out=[];
   S.events.filter(e=>e.date===k).forEach(e=>out.push({kind:'ev',e,time:e.time||''}));
-  bdaysAll().filter(b=>bdayOn(b,d)).forEach(b=>out.push({kind:'bd',b,time:'',age:d.getFullYear()-parse(b.date).getFullYear()}));
+  bdaysAll().filter(b=>bdayOn(b,d)).forEach(b=>out.push({kind:'bd',b,time:'',age:bdAge(b,d.getFullYear())}));
   BINS.forEach(bin=>{const p=nextPickup(bin,d);if(p&&key(p)===k)out.push({kind:'muell',bin,time:''})});
   return out.sort((a,b)=>a.time.localeCompare(b.time));
 }
@@ -549,7 +573,7 @@ function evRow(it){
 function renderCal(){
   const el=$('#p-kalender');
   if(!$('#calSeg')){
-    el.innerHTML='<h2>Kalender</h2><div class="seg" id="calSeg" role="group" aria-label="Bereich"><button data-ct="termine">Termine</button><button data-ct="geburtstage">Geburtstage</button><button data-ct="muell">Müll</button></div><div class="sub" id="calTermine"></div><div class="sub" id="calGeb"><div class="sub" id="gebList"></div><form class="card form" id="bForm"><b>Geburtstag eintragen</b><div class="frow"><label>Name<input id="bName" maxlength="40" placeholder="z. B. Oma" autocomplete="off"></label><label>Geburtsdatum<input type="date" id="bDate" max="'+key(today())+'"></label></div><button class="btn" type="submit">Eintragen</button></form></div><div class="sub" id="p-muell"></div>';
+    el.innerHTML='<h2>Kalender</h2><div class="seg" id="calSeg" role="group" aria-label="Bereich"><button data-ct="termine">Termine</button><button data-ct="geburtstage">Geburtstage</button><button data-ct="muell">Müll</button></div><div class="sub" id="calTermine"></div><div class="sub" id="calGeb"><div class="sub" id="gebList"></div><form class="card form" id="bForm"><b>Geburtstag eintragen</b><div class="frow"><label style="grid-column:1/-1">Name<input id="bName" maxlength="40" placeholder="z. B. Oma" autocomplete="off"></label></div>'+bdFields('bAdd',null,false)+'<button class="btn" type="submit">Eintragen</button></form></div><div class="sub" id="p-muell"></div>';
     el.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{S.calTab=b.dataset.ct;renderCal()}));
     $('#bForm').addEventListener('submit',addBday);
   }
@@ -596,7 +620,7 @@ function openBdaySheet(id){
   const host=$('#sheetHost'),editable=S.canWrite&&S.bdaysLoaded;
   host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="bdForm" aria-label="Geburtstag"><h2 style="font-size:20px">🎂 Geburtstag</h2>'+
     '<label class="f">Name<input id="bdName" maxlength="40" value="'+esc(b.name)+'" '+(editable?'':'disabled')+'></label>'+
-    '<label class="f">Geburtsdatum<input type="date" id="bdDate" value="'+esc(b.date)+'" max="'+key(today())+'" '+(editable?'':'disabled')+'></label>'+
+    bdFields('bdE',b,!editable)+
     '<div class="row">'+(editable?'<button class="btn" type="submit" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="bdDel" style="color:var(--danger)">Löschen</button>':'')+'<button class="btn ghost" type="button" id="cancel">Schließen</button></div></form></div>';
   const close=()=>{host.innerHTML=''};
   $('#cancel').onclick=close;
@@ -604,8 +628,9 @@ function openBdaySheet(id){
   if(!editable)return;
   $('#bdDel').onclick=async()=>{const dl=$('#bdDel');if(!dl.dataset.armed){dl.dataset.armed='1';dl.textContent='Wirklich löschen?';return}close();await deleteBday(b.id)};
   $('#bdForm').addEventListener('submit',async x=>{
-    x.preventDefault();const n=$('#bdName').value.trim(),d=$('#bdDate').value;
-    if(!n||!/^\d{4}-\d\d-\d\d$/.test(d)){toast('Bitte Name und Datum eingeben');return}
+    x.preventDefault();const n=$('#bdName').value.trim();
+    if(!n){toast('Bitte einen Namen eingeben');return}
+    const d=bdRead('bdE');if(!d)return;
     close();try{await S.db.collection('birthdays').doc(b.id).set({name:n,date:d,at:b.at||Date.now()});toast('Geburtstag geändert')}catch(err){handleWriteError(err)}
   });
 }
@@ -640,9 +665,9 @@ function renderAgenda(){
 }
 function renderGeb(){
   const t=today();
-  const list=bdaysAll().map(b=>{const x=parse(b.date);let n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n=new Date(t.getFullYear()+1,x.getMonth(),x.getDate());return {b,n,days:diffDays(t,n),turns:n.getFullYear()-x.getFullYear()}}).sort((a,b)=>a.days-b.days);
+  const list=bdaysAll().map(b=>{const n=bdNext(b);return {b,n,days:diffDays(t,n),turns:bdAge(b,n.getFullYear())}}).sort((a,b)=>a.days-b.days);
   let html='<p class="small muted" style="margin:0">Geburtstage stehen jedes Jahr automatisch im Kalender.</p>'+statusNote();
-  html+=list.length?'<div class="evlist">'+list.map(x=>'<div class="ev bd"><span class="tm">🎂</span><span class="txt"'+(S.canWrite&&S.bdaysLoaded?' data-bd="'+esc(x.b.id)+'" role="button" tabindex="0" style="cursor:pointer"':'')+'><b>'+esc(x.b.name)+'</b><span>'+parse(x.b.date).toLocaleDateString('de-DE')+' · wird '+x.turns+' · '+(x.days===0?'heute!':relDay(x.days))+'</span></span>'+(S.canWrite&&S.bdaysLoaded?'<button class="del" data-bdel="'+esc(x.b.id)+'" aria-label="'+esc(x.b.name)+' löschen">✕</button>':'')+'</div>').join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Geburtstage eingetragen.</p>';
+  html+=list.length?'<div class="evlist">'+list.map(x=>'<div class="ev bd"><span class="tm">🎂</span><span class="txt"'+(S.canWrite&&S.bdaysLoaded?' data-bd="'+esc(x.b.id)+'" role="button" tabindex="0" style="cursor:pointer"':'')+'><b>'+esc(x.b.name)+'</b><span>'+bdLabel(x.b)+(x.turns?' · wird '+x.turns:'')+' · '+(x.days===0?'heute!':relDay(x.days))+'</span></span>'+(S.canWrite&&S.bdaysLoaded?'<button class="del" data-bdel="'+esc(x.b.id)+'" aria-label="'+esc(x.b.name)+' löschen">✕</button>':'')+'</div>').join('')+'</div>':'<p class="small muted" style="margin:0">Noch keine Geburtstage eingetragen.</p>';
   const box=$('#gebList');box.innerHTML=html;bindItems(box);
   box.querySelectorAll('[data-bdel]').forEach(b=>b.addEventListener('click',()=>{
     if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Löschen?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='✕'}},3000);return}
@@ -650,10 +675,11 @@ function renderGeb(){
   }));
 }
 async function addBday(ev){
-  ev.preventDefault();const n=$('#bName').value.trim(),d=$('#bDate').value;
-  if(!n||!/^\d{4}-\d\d-\d\d$/.test(d)){toast('Bitte Name und Datum eingeben');return}
+  ev.preventDefault();const n=$('#bName').value.trim();
+  if(!n){toast('Bitte einen Namen eingeben');return}
+  const d=bdRead('bAdd');if(!d)return;
   if(!S.db)return;
-  try{await S.db.collection('birthdays').add({name:n,date:d,at:Date.now()});$('#bName').value='';$('#bDate').value='';toast('Geburtstag eingetragen')}catch(e){handleWriteError(e)}
+  try{await S.db.collection('birthdays').add({name:n,date:d,at:Date.now()});$('#bName').value='';['bAddD','bAddM','bAddY'].forEach(i=>$('#'+i).value='');toast('Geburtstag eingetragen')}catch(e){handleWriteError(e)}
 }
 async function deleteBday(id){try{await S.db.collection('birthdays').doc(id).delete();toast('Geburtstag gelöscht')}catch(e){handleWriteError(e)}}
 function openEventSheet(ev,dateKey){
