@@ -168,6 +168,10 @@ a{color:var(--accent);font-weight:600}
 .addtask{border:1.5px dashed var(--line);background:none;border-radius:16px;padding:12px;font-weight:700;color:var(--accent);width:100%}
 .sheet select{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px;width:100%;box-sizing:border-box;font-size:16px}
 .chips.days .chip{padding:8px 12px}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pill.late{background:var(--danger,#d64545);color:#fff}
+.tfield{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px}
+.tfield input{font-weight:500}
 
 /* Kalender */
 .seg{display:flex;background:var(--surface-2);border-radius:12px;padding:3px;gap:3px}
@@ -325,8 +329,11 @@ function today(){const d=new Date();d.setHours(0,0,0,0);return d}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
 function diffDays(a,b){return Math.round((parse(key(b))-parse(key(a)))/864e5)}
 function viewDate(){return addDays(today(),S.offset)}
-function allTasks(){return TASKS.concat(S.custom.map(c=>({id:'c-'+c.id,t:c.t,slot:c.slot,k:'Eigene Aufgabe',days:Array.isArray(c.days)&&c.days.length&&c.days.length<7?c.days:null,who:c.who||'',custom:c.id})))}
-function tasksFor(d){return allTasks().filter(t=>!t.days||t.days.includes(d.getDay()))}
+function allTasks(){return TASKS.concat(S.custom.map(c=>{const once=/^\d{4}-\d\d-\d\d$/.test(c.once||'')?c.once:'';return {id:'c-'+c.id,t:c.t,slot:c.slot,k:once?'Einmalige Aufgabe':'Eigene Aufgabe',days:!once&&Array.isArray(c.days)&&c.days.length&&c.days.length<7?c.days:null,once,due:/^\d\d:\d\d$/.test(c.due||'')?c.due:'',who:c.who||'',custom:c.id}}))}
+function tasksFor(d){const k=key(d);return allTasks().filter(t=>t.once?t.once===k:!t.days||t.days.includes(d.getDay()))}
+/* Deadline passed and still open */
+function isLate(d,t){if(!t.due||isDone(d,t))return false;const k=key(d),n=new Date(),nk=key(n);return k<nk||(k===nk&&String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')>t.due)}
+function duePill(d,t){return t.due?'<span class="pill'+(isLate(d,t)?' late':'')+'">'+(isLate(d,t)?'Frist '+t.due+' vorbei':'bis '+t.due+' Uhr')+'</span>':''}
 const WDS=['So','Mo','Di','Mi','Do','Fr','Sa'];
 function daysLabel(t){if(!t.days)return '';const d=t.days.slice().sort((a,b)=>((a+6)%7)-((b+6)%7));return d.length===2&&d[0]===6&&d[1]===0?'Wochenende':d.map(i=>WDS[i]).join(', ')}
 function weekStart(){const t=today();return addDays(t,-((t.getDay()+6)%7))}
@@ -448,7 +455,7 @@ function renderHome(){
   html+=statusNote();
   html+='<div class="card"><h3>Termine heute & morgen</h3><div class="evlist">'+[['Heute',t],['Morgen',addDays(t,1)]].map(([l,d])=>{const its=itemsOn(d);return '<p class="daylabel" style="margin-top:4px">'+l+' · '+fmtShort(d)+'</p>'+(its.length?its.map(evRow).join(''):'<p class="small muted" style="margin:0">Nichts eingetragen.</p>')}).join('')+'</div></div>';
   if(open.length){
-    html+='<div class="card"><h3>Noch offen heute</h3><ul class="open-list">'+open.map(x=>'<li><span>'+esc(x.t)+'</span><span class="muted small">'+SLOTS.find(s=>s[0]===x.slot)[1]+'</span></li>').join('')+'</ul></div>';
+    html+='<div class="card"><h3>Noch offen heute</h3><ul class="open-list">'+open.map(x=>'<li><span>'+esc(x.t)+'</span><span class="muted small">'+(x.due?(isLate(t,x)?'<b style="color:var(--danger,#d64545)">Frist '+x.due+' vorbei</b>':'bis '+x.due+' Uhr'):SLOTS.find(s=>s[0]===x.slot)[1])+'</span></li>').join('')+'</ul></div>';
   }
   if(rk.length)html+='<button class="res" data-go="3"><div><b>🏆 '+esc(rk[0][0])+' führt diese Woche</b><small>'+rk[0][1]+(rk[0][1]===1?' Punkt':' Punkte')+' · Rangliste ansehen</small></div><span class="tag">Punkte</span></button>';
   const nx=up[0];
@@ -466,7 +473,7 @@ function tile(i,ic,b,s,tab){return '<button class="tile" data-go="'+i+'"'+(tab?'
 
 function renderSearch(){
   const q=S.q.toLowerCase(),t=today(),res=[];
-  allTasks().forEach(x=>{if((x.t+' '+x.k+' '+x.slot+' '+daysLabel(x)+' '+(x.who||'')).toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:0,title:x.t,sub:SLOTS.find(s=>s[0]===x.slot)[1]+(x.days?' · '+daysLabel(x):'')+(x.who?' · für '+x.who:'')+(d?' · erledigt von '+d.name:''),tag:'Aufgabe'})}});
+  allTasks().forEach(x=>{if((x.t+' '+x.k+' '+x.slot+' '+daysLabel(x)+' '+(x.who||'')).toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:0,title:x.t,sub:SLOTS.find(s=>s[0]===x.slot)[1]+(x.days?' · '+daysLabel(x):'')+(x.once?' · einmalig am '+fmtShort(parse(x.once)):'')+(x.due?' · bis '+x.due+' Uhr':'')+(x.who?' · für '+x.who:'')+(d?' · erledigt von '+d.name:''),tag:'Aufgabe'})}});
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:4,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
   if('einkaufsliste einkaufen'.includes(q))res.push({go:4,title:'Einkaufsliste',sub:S.shop.filter(x=>!x.done).length+' offen',tag:'Einkauf'});
   S.events.forEach(e=>{if((e.title+' '+(e.place||'')+' '+(e.persons||[]).join(' ')+' '+(e.desc||'')+' termin kalender').toLowerCase().includes(q)){const d=parse(e.date);res.push({go:1,tab:'termine',day:e.date,title:e.title,sub:fmtShort(d)+(d.getFullYear()!==t.getFullYear()?' '+d.getFullYear():'')+(e.time?' · '+e.time+' Uhr':'')+(e.place?' · '+e.place:''),tag:'Termin'})}});
@@ -493,10 +500,12 @@ function renderTasks(){
     const items=list.filter(t=>t.slot===sid);if(!items.length)return;
     html+='<div class="slot"><h3>'+sl+(S.offset===0&&slotNow()===sid?' · jetzt':'')+'</h3>'+items.map(t=>{
       const x=isDone(d,t);
-      return '<div class="task'+(x?' done':'')+'"><button class="check" data-t="'+t.id+'" aria-label="'+esc(t.t)+(x?' erledigt':' abhaken')+'" '+(x||!S.canWrite?'disabled':'')+'>'+(x?ICON.check:'')+'</button><div class="txt"><b>'+esc(t.t)+'</b><span class="who">'+(x?'Erledigt von <strong>'+esc(x.name)+'</strong> um '+hhmm(x.at)+' Uhr':'Noch nicht gemacht')+'</span></div>'+(t.who?'<span class="pill">für '+esc(t.who)+'</span>':'')+(t.days?'<span class="pill">'+esc(daysLabel(t))+'</span>':'')+(x&&S.canWrite?'<button class="undo" data-u="'+t.id+'">Zurück</button>':'')+(S.editTasks&&t.custom?'<button class="del" data-del="'+esc(t.custom)+'">Löschen</button>':'')+'</div>';
+      return '<div class="task'+(x?' done':'')+'"><button class="check" data-t="'+t.id+'" aria-label="'+esc(t.t)+(x?' erledigt':' abhaken')+'" '+(x||!S.canWrite?'disabled':'')+'>'+(x?ICON.check:'')+'</button><div class="txt"><b>'+esc(t.t)+'</b><span class="who">'+(x?'Erledigt von <strong>'+esc(x.name)+'</strong> um '+hhmm(x.at)+' Uhr':'Noch nicht gemacht')+'</span>'+((t.who||t.days||t.once||t.due)?'<span class="tags">'+(t.who?'<span class="pill">für '+esc(t.who)+'</span>':'')+(t.days?'<span class="pill">'+esc(daysLabel(t))+'</span>':'')+(t.once?'<span class="pill">einmalig</span>':'')+duePill(d,t)+'</span>':'')+'</div>'+(x&&S.canWrite?'<button class="undo" data-u="'+t.id+'">Zurück</button>':'')+(S.editTasks&&t.custom?'<button class="del" data-del="'+esc(t.custom)+'">Löschen</button>':'')+'</div>';
     }).join('')+'</div>';
   });
   if(S.canWrite)html+='<button class="addtask" id="addTask">+ Neue Aufgabe</button>'+(S.custom.length?'<div class="row" style="justify-content:center"><button class="undo" id="editTasks">'+(S.editTasks?'Fertig':'Eigene Aufgaben löschen')+'</button></div>':'');
+  const plan=allTasks().filter(t=>t.once&&t.once>key(today())).sort((a,b)=>(a.once+(a.due||'')).localeCompare(b.once+(b.due||'')));
+  if(plan.length)html+='<div class="card"><h3>Geplante einmalige Aufgaben</h3><ul class="open-list">'+plan.map(t=>'<li style="gap:8px;align-items:center"><span style="flex:1;min-width:0">'+esc(t.t)+(t.who?' · für '+esc(t.who):'')+'</span><span class="muted small" style="text-align:right">'+fmtShort(parse(t.once))+(t.due?'<br>bis '+t.due+' Uhr':'')+'</span>'+(S.canWrite?'<button class="del" data-del="'+esc(t.custom)+'" aria-label="'+esc(t.t)+' löschen">✕</button>':'')+'</li>').join('')+'</ul></div>';
   if(!wk)html+='<p class="small muted">Frühstück machen steht samstags und sonntags auf der Liste.</p>';
   el.innerHTML=html;
   $('#dprev').onclick=()=>{S.offset--;renderTasks()};
@@ -814,16 +823,25 @@ async function clearBought(){
   try{for(const id of ids)await S.db.collection('shopping').doc(id).delete();toast(ids.length===1?'1 Eintrag entfernt':ids.length+' Einträge entfernt')}catch(e){handleWriteError(e)}
 }
 function openTaskSheet(){
-  const host=$('#sheetHost'),sel=new Set([0,1,2,3,4,5,6]);
-  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="taskForm" aria-label="Neue Aufgabe"><h2 style="font-size:20px">Neue Aufgabe</h2><input id="tName" maxlength="40" placeholder="z. B. Spülmaschine ausräumen" aria-label="Aufgabe"><select id="tSlot" aria-label="Tageszeit">'+SLOTS.map(x=>'<option value="'+x[0]+'"'+(x[0]===slotNow()?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div><h3>An welchen Tagen?</h3><div class="chips days">'+[1,2,3,4,5,6,0].map(i=>'<button type="button" class="chip" data-d="'+i+'" aria-pressed="true">'+WDS[i]+'</button>').join('')+'</div></div><select id="tWho" aria-label="Für wen"><option value="">Für alle</option>'+FAMILY.filter(p=>!p.dog).map(p=>'<option value="'+p.n+'">Für '+p.n+'</option>').join('')+'</select><div class="row"><button class="btn" type="submit" style="flex:1">Anlegen</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></form></div>';
+  const host=$('#sheetHost'),sel=new Set([0,1,2,3,4,5,6]);let mode='repeat';
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="taskForm" aria-label="Neue Aufgabe"><h2 style="font-size:20px">Neue Aufgabe</h2><input id="tName" maxlength="40" placeholder="z. B. Spülmaschine ausräumen" aria-label="Aufgabe"><div class="seg" id="tMode" role="group" aria-label="Wie oft?"><button type="button" data-m="repeat" aria-pressed="true">Wiederkehrend</button><button type="button" data-m="once" aria-pressed="false">Einmalig</button></div><select id="tSlot" aria-label="Tageszeit">'+SLOTS.map(x=>'<option value="'+x[0]+'"'+(x[0]===slotNow()?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div id="tRepeat"><h3>An welchen Tagen?</h3><div class="chips days">'+[1,2,3,4,5,6,0].map(i=>'<button type="button" class="chip" data-d="'+i+'" aria-pressed="true">'+WDS[i]+'</button>').join('')+'</div></div><div id="tOnce" hidden><h3>An welchem Tag?</h3><div class="chips" style="margin-bottom:8px"><button type="button" class="chip" data-q="0" aria-pressed="true">Heute</button><button type="button" class="chip" data-q="1" aria-pressed="false">Morgen</button></div><input type="date" id="tDate" aria-label="Datum" value="'+key(today())+'" min="'+key(today())+'"></div><label class="tfield">Frist bis Uhrzeit (optional)<input type="time" id="tDue" aria-label="Frist Uhrzeit"></label><select id="tWho" aria-label="Für wen"><option value="">Für alle</option>'+FAMILY.filter(p=>!p.dog).map(p=>'<option value="'+p.n+'">Für '+p.n+'</option>').join('')+'</select><div class="row"><button class="btn" type="submit" style="flex:1">Anlegen</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div></form></div>';
   host.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.d;if(sel.has(i)){if(sel.size>1)sel.delete(i)}else sel.add(i);b.setAttribute('aria-pressed',sel.has(i))}));
+  host.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.m;host.querySelectorAll('[data-m]').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#tRepeat').hidden=mode!=='repeat';$('#tOnce').hidden=mode!=='once'}));
+  const quick=()=>host.querySelectorAll('[data-q]').forEach(x=>x.setAttribute('aria-pressed',$('#tDate').value===key(addDays(today(),+x.dataset.q))));
+  host.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>{$('#tDate').value=key(addDays(today(),+b.dataset.q));quick()}));
+  $('#tDate').addEventListener('input',quick);
   const close=()=>{host.innerHTML=''};
   $('#cancel').onclick=close;
   $('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
   $('#taskForm').addEventListener('submit',async e=>{
     e.preventDefault();const t=$('#tName').value.trim();if(!t){$('#tName').focus();$('#tName').placeholder='Bitte Aufgabe eingeben';return}
-    const data={t:t,slot:$('#tSlot').value,days:[...sel].sort(),who:$('#tWho').value,at:Date.now()};close();
-    try{await S.db.collection('tasks').add(data);toast(data.days.includes(viewDate().getDay())?'Aufgabe angelegt':'Angelegt, erscheint an den gewählten Tagen')}catch(err){handleWriteError(err)}
+    const data={t:t,slot:$('#tSlot').value,who:$('#tWho').value,due:$('#tDue').value||'',at:Date.now()};
+    if(mode==='once'){const dt=$('#tDate').value;if(!/^\d{4}-\d\d-\d\d$/.test(dt)||dt<key(today())){toast('Bitte ein Datum ab heute wählen');return}data.once=dt;data.days=[]}else data.days=[...sel].sort();
+    close();
+    let msg;
+    if(data.once){const n=diffDays(today(),parse(data.once));msg=n===0?'Aufgabe für heute angelegt':'Angelegt für '+(n===1?'morgen':fmtShort(parse(data.once)))}
+    else msg=data.days.includes(viewDate().getDay())?'Aufgabe angelegt':'Angelegt, erscheint an den gewählten Tagen';
+    try{await S.db.collection('tasks').add(data);toast(msg)}catch(err){handleWriteError(err)}
   });
 }
 async function deleteTask(id){try{await S.db.collection('tasks').doc(id).delete();toast('Aufgabe gelöscht')}catch(e){handleWriteError(e)}}
@@ -837,7 +855,7 @@ qc.addEventListener('click',()=>{clearSearch();qi.focus()});
 /* ---------- Boot ---------- */
 go(2);render();
 let lastDay=key(today());
-setInterval(()=>{if(key(today())!==lastDay){lastDay=key(today());render()}},60000);
+setInterval(()=>{if(key(today())!==lastDay){lastDay=key(today());render()}else if(allTasks().some(t=>t.due)){renderTasks();if(!S.q)renderHome()}},60000);
 
 /* ---------- Firebase ---------- */
 // Werte aus Firebase-Konsole > Projekteinstellungen > Deine Apps > Web-App
