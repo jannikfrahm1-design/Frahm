@@ -94,10 +94,21 @@ function nextPickup(muell, bin, from) {
   const n = Math.ceil(diffDays(d, floor) / step); return addDays(d, n * step);
 }
 
+/* ---------- Daten, höchstens alle 5 Minuten neu geladen ----------
+   Firestore erlaubt im kostenlosen Tarif 50.000 Lesezugriffe pro Tag, die App der Familie braucht davon auch etwas. */
+let cache = null, cacheAt = 0;
+async function data() {
+  if (cache && Date.now() - cacheAt < 5 * 6e4) return cache;
+  const [tasks, events, bdays, muellDoc, subs] = await Promise.all([list('tasks'), list('events'), list('birthdays'), get('config/muell'), list('push')]);
+  cache = { tasks, events, bdays, muellDoc, subs }; cacheAt = Date.now();
+  return cache;
+}
+const sent = new Set(); // in diesem Lauf schon erledigt, spart Lese- und Schreibzugriffe
+
 /* ---------- Was ist fällig? ---------- */
 async function due() {
   const out = []; // {id, title, body, to?: name}
-  const [tasks, events, bdays, muellDoc] = await Promise.all([list('tasks'), list('events'), list('birthdays'), get('config/muell')]);
+  const { tasks, events, bdays, muellDoc } = await data();
 
   // Aufgaben mit Frist: 30 Minuten vorher, wenn noch nicht abgehakt
   for (const c of tasks) {
@@ -107,9 +118,8 @@ async function due() {
     if (once ? once !== T : days && !days.includes(today.getDay())) continue;
     const dl = at(today, c.due);
     if (!inWin(new Date(dl - 30 * 6e4), new Date(+dl + 60 * 6e4))) continue;
-    if (await get(`done/${T}_c-${c.id}`)) continue;
     const late = now >= dl;
-    out.push({ id: `frist_${T}_${c.id}`, title: late ? '⏰ Frist vorbei' : '⏰ Bald fällig', body: `${c.t}: ${late ? 'sollte bis' : 'bis'} ${c.due} Uhr erledigt sein`, to: c.who || '' });
+    out.push({ check: async () => !!(await get(`done/${T}_c-${c.id}`)), id: `frist_${T}_${c.id}`, title: late ? '⏰ Frist vorbei' : '⏰ Bald fällig', body: `${c.t}: ${late ? 'sollte bis' : 'bis'} ${c.due} Uhr erledigt sein`, to: c.who || '' });
   }
 
   // Müll: am Vorabend ab 18 Uhr
@@ -159,13 +169,15 @@ async function due() {
 async function tick() {
   now = process.env.NOW ? new Date(process.env.NOW) : new Date();
   today = parse(key(now)); tomorrow = addDays(today, 1); T = key(today);
-  const subs = await list('push');
+  const subs = (await data()).subs;
   if (DRY && !subs.length) subs.push({ id: 'test', name: '', endpoint: 'x' });
   const items = await due();
   console.log(`${hm(now)} · ${subs.length} Handy(s) angemeldet · ${items.length} fällig`);
   for (const it of items) {
     const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to));
-    if (!targets.length) continue;
+    if (!targets.length || sent.has(it.id)) continue;
+    if (it.check && await it.check()) { sent.add(it.id); continue; } // schon abgehakt
+    sent.add(it.id);
     if (!(await claim(it.id, T))) continue; // schon geschickt
     const payload = JSON.stringify({ title: it.title, body: it.body, tag: it.id, url: APP_URL });
     for (const s of targets) {
