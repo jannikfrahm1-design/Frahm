@@ -166,6 +166,52 @@ a{color:var(--accent);font-weight:600}
 .wxc .rb{width:8px;height:34px;border-radius:4px;background:var(--surface-2);display:flex;align-items:flex-end;overflow:hidden}
 .wxc .rb i{display:block;width:100%;background:var(--papier);border-radius:4px 4px 0 0}
 .tiny{font-size:11px;color:var(--muted)}
+/* KI */
+:root{--ai1:#7C5CFF;--ai2:#1F9D74;--ai3:#2FA7E0}
+.aiorb{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:conic-gradient(from 200deg,var(--ai1),var(--ai3),var(--ai2),var(--ai1));box-shadow:0 4px 14px rgba(124,92,255,.35)}
+.aiorb svg{width:22px;height:22px}
+.aiorb.sm{width:30px;height:30px;box-shadow:none}
+.aiorb.sm svg{width:16px;height:16px}
+.aiorb.lg{width:72px;height:72px}
+.aiorb.lg svg{width:34px;height:34px}
+.aiorb.pulse{animation:orb 1.2s ease-in-out infinite}
+@keyframes orb{50%{transform:scale(.88);filter:brightness(1.2)}}
+.aibadge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:6px;color:#fff;background:linear-gradient(90deg,var(--ai1),var(--ai3));vertical-align:middle}
+.aientry{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid transparent;border-radius:var(--r);padding:14px;color:var(--fg);background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(120deg,var(--ai1),var(--ai3),var(--ai2)) border-box}
+.aientry .aitx{flex:1;min-width:0}
+.aientry b{display:block;font-family:var(--display);font-size:17px}
+.aientry small{display:block;color:var(--muted);font-size:14px}
+.aiask{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:14px;padding:12px 14px;color:var(--fg);border:1px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(120deg,var(--ai1),var(--ai3)) border-box}
+.aiask b{display:block}.aiask small{color:var(--muted)}
+.chat{position:fixed;inset:0;z-index:25;background:var(--bg);display:flex;flex-direction:column;height:100dvh;animation:up .22s ease-out}
+.chat[hidden]{display:none}
+.chathead{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--surface)}
+.chathead .ct{flex:1;min-width:0}
+.chathead b{display:block;font-family:var(--display);font-size:17px}
+.chathead small{display:block;color:var(--muted);font-size:12px}
+.chatlog{flex:1;overflow-y:auto;padding:16px max(14px,env(safe-area-inset-right,0px)) 12px max(14px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.msg{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.msg.me{justify-content:flex-end}
+.msg .bub{border-radius:18px;padding:10px 14px;max-width:84%;overflow-wrap:anywhere;font-size:15px}
+.msg.me .bub{background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:6px}
+.msg.ai .bub{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px;max-width:calc(100% - 40px)}
+.msg.ai .bub p{margin:0 0 8px}.msg.ai .bub p:last-child{margin:0}
+.msg.ai .bub .ailist{margin-top:6px}
+.typing{display:flex;gap:4px;align-items:center;padding:14px 16px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.chatintro{margin:auto 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 4px}
+.chatintro h2{font-size:22px}
+.chatintro p{margin:0;max-width:34ch}
+.chatex{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:8px}
+.chatq{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px;text-align:left;font-weight:600;color:var(--fg)}
+.chatbar{display:flex;align-items:flex-end;gap:8px;padding:10px max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--line)}
+.chatbar textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:20px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;max-height:120px}
+.chatbar .send{flex:none;width:42px;height:42px;border-radius:50%;border:0;color:#fff;display:grid;place-items:center;background:linear-gradient(135deg,var(--ai1),var(--ai3))}
+.chatbar .send svg{width:20px;height:20px}
+.chatnote{margin:0;text-align:center;font-size:11px;color:var(--muted);background:var(--surface);padding:0 12px calc(8px + env(safe-area-inset-bottom,0px))}
+body.chatopen nav{display:none}
 /* Assistent */
 .ai{border-color:var(--accent);box-shadow:0 2px 0 var(--accent-soft)}
 .aihead{display:flex;align-items:center;gap:8px;font-weight:800;font-family:var(--display);font-size:15px;color:var(--accent);margin-bottom:8px}
@@ -300,11 +346,11 @@ nav .home svg{width:26px;height:26px}
 .dots i.on{width:18px;background:var(--accent)}
 
 /* Sheet */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;display:flex;align-items:flex-end}
 .sheet{background:var(--surface);width:100%;border-radius:24px 24px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;animation:up .25s ease-out;box-sizing:border-box}
 .sheet input{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px;width:100%;box-sizing:border-box;font-size:16px}
 @keyframes up{from{transform:translateY(40px);opacity:.4}}
-.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:30;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:50;white-space:nowrap}
 @media (prefers-reduced-motion: reduce){.track,.sheet,.task{transition:none;animation:none}}
 @media (min-width:700px){.app{max-width:520px;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line)} nav{max-width:520px;margin:0 auto}}
 </style>
@@ -321,7 +367,7 @@ nav .home svg{width:26px;height:26px}
     </div>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Frag Frahm oder suche …" autocomplete="off" enterkeyhint="search" aria-label="Frag Frahm oder suche">
+      <input id="q" type="search" placeholder="Suchen: Termine, Aufgaben, Müll …" autocomplete="off" enterkeyhint="search" aria-label="Suchen">
       <button class="clear" id="qclear" hidden aria-label="Suche leeren">✕</button>
     </div>
   </header>
@@ -387,7 +433,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={chat:null,chatTyping:false,wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -426,6 +472,7 @@ const ICON={
   paw:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6" r="2.2"/><circle cx="14" cy="6" r="2.2"/><circle cx="18" cy="10" r="2.2"/><path d="M12 11c-3 0-6 4.5-6 7 0 1.6 1.3 2.5 3 2.2 1.2-.2 2-.7 3-.7s1.8.5 3 .7c1.7.3 3-.6 3-2.2 0-2.5-3-7-6-7z"/></svg>',
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
   cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z" opacity=".75"/></svg>',
   cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.8L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'
 };
 
@@ -523,7 +570,7 @@ function renderHome(){
   const nev=S.events.filter(e=>e.date>=key(t)).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')))[0];
   let html='<div class="hero"><div class="ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="32" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="38" cy="38" r="32" fill="none" stroke="var(--sun)" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-pct))+'"/></svg><div class="num">'+done+'/'+list.length+'</div></div><div><h2>'+greet+who+'!</h2><p>'+(open.length?open.length+(open.length===1?' Aufgabe ist':' Aufgaben sind')+' heute noch offen.':'Alle Aufgaben für heute sind erledigt.')+'</p></div></div>';
   html+=wxCardHtml();
-  html+='<div><h3>Frag Frahm</h3><div class="askchips hscroll" style="margin:0 -16px;padding:0 16px 2px">'+ASK_EXAMPLES.map(x=>'<button class="chip" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div>';
+  html+='<button class="aientry" id="aiEntry"><span class="aiorb">'+ICON.spark+'</span><span class="aitx"><b>Frahm KI</b><small>Frag mich nach freien Zeiten, Wetter, Terminen …</small></span><span class="aibadge">KI</span></button>';
   html+=soonBins.map(x=>{const n=diffDays(t,x.d);return '<div class="alert"><span class="can" style="--c:'+x.b.c+';width:26px;height:30px"></span><div><b>'+(n===0?'Heute':'Morgen')+' kommt: '+x.b.n+'</b><span class="small muted">'+(n===0?'Tonne sollte schon draußen stehen.':'Heute Abend rausstellen.')+'</span></div></div>'}).join('');
   if(nb.days<=14)html+='<div class="alert"><span style="color:var(--sun)">'+ICON.cake.replace('<svg','<svg width="28" height="28"')+'</span><div><b>'+(nb.days===0?nb.p.n+' hat heute Geburtstag! 🎉':nb.p.n+' hat '+relLow(nb.days)+' Geburtstag')+'</b><span class="small muted">'+nb.p.n+' wird '+nb.turns+(nb.p.dog?' (Hundejahre: viele)':'')+' · '+fmtShort(nb.date)+'</span></div></div>';
   html+=statusNote();
@@ -544,14 +591,14 @@ function renderHome(){
   el.innerHTML=html;
   bindGo(el);
   bindItems(el);
-  bindAi(el);
+  const ae=$('#aiEntry');if(ae)ae.onclick=()=>openChat();
   const wo=$('#wxOpen');if(wo)wo.onclick=openWxSheet;
   const wm=$('#wxMore');if(wm)wm.onclick=openWxSheet;
 }
 function tile(i,ic,b,s,tab){return '<button class="tile" data-go="'+i+'"'+(tab?' data-tab="'+tab+'"':'')+'><span class="ic">'+ic+'</span><b>'+b+'</b><span>'+esc(s)+'</span></button>'}
 
-function renderSearch(){
-  const q=S.q.toLowerCase(),t=today(),res=[];
+function searchResults(qq){
+  const q=qq.toLowerCase(),t=today(),res=[];
   allTasks().forEach(x=>{if((x.t+' '+x.k+' '+x.slot+' '+daysLabel(x)+' '+(x.who||'')).toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:0,title:x.t,sub:SLOTS.find(s=>s[0]===x.slot)[1]+(x.days?' · '+daysLabel(x):'')+(x.once?' · einmalig am '+fmtShort(parse(x.once)):'')+(x.due?' · bis '+x.due+' Uhr':'')+(x.who?' · für '+x.who:'')+(d?' · erledigt von '+d.name:''),tag:'Aufgabe'})}});
   BELLA_TASKS.forEach(x=>{if((x.t+' '+x.slot+' bella hund').toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:PG.bella,title:x.t,sub:(x.slot==='morgens'?'Morgens':'Abends')+(d?' · erledigt von '+d.name:' · noch offen'),tag:'Bella'})}});
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:PG.einkauf,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
@@ -562,10 +609,14 @@ function renderSearch(){
   if('punkte rangliste'.includes(q))res.push({go:PG.familie,title:'Wochen-Rangliste',sub:'Wer hat diese Woche am meisten gemacht?',tag:'Familie'});
   BINS.forEach(b=>{if((b.n+' '+b.sub+' müll tonne abfuhr').toLowerCase().includes(q)){const d=nextPickup(b,t);res.push({go:1,tab:'muell',title:b.n,sub:d?fmtShort(d)+' ('+relDay(diffDays(t,d))+')':'Noch kein Termin eingetragen',tag:'Müll'})}});
   FAMILY.forEach(p=>{if((p.n+' '+p.role+' geburtstag').toLowerCase().includes(q)){const nb=nextBirthday(p);res.push({go:PG.kalender,tab:'geburtstage',title:p.n,sub:p.role+' · Geburtstag '+fmtShort(nb.date),tag:'Familie'})}});
-  const ai=aiCardHtml();
-  return ai+(res.length?'<h3 style="margin-top:4px">Gefunden</h3>':'')+(res.length?'<div class="searchres">'+res.map(r=>'<button class="res" data-go="'+r.go+'"'+(r.tab?' data-tab="'+r.tab+'"':'')+(r.day?' data-day="'+r.day+'"':'')+'><div><b>'+esc(r.title)+'</b><small>'+esc(r.sub)+'</small></div><span class="tag">'+r.tag+'</span></button>').join('')+'</div>':ai?'':'<p class="muted">Dazu habe ich nichts gefunden. Frag mich zum Beispiel:</p><div class="chips">'+ASK_EXAMPLES.slice(0,4).map(x=>'<button class="chip" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>');
+  return res;
 }
-function bindSearch(el){bindGo(el);bindAi(el)}
+function renderSearch(){
+  const res=searchResults(S.q);
+  const ai='<button class="aiask" data-chat-q="'+esc(S.q)+'"><span class="aiorb sm">'+ICON.spark+'</span><span><b>Frahm KI fragen</b><small>„'+esc(S.q)+'“</small></span></button>';
+  return ai+(res.length?'<h3 style="margin-top:4px">Gefunden</h3>':'')+(res.length?'<div class="searchres">'+res.map(r=>'<button class="res" data-go="'+r.go+'"'+(r.tab?' data-tab="'+r.tab+'"':'')+(r.day?' data-day="'+r.day+'"':'')+'><div><b>'+esc(r.title)+'</b><small>'+esc(r.sub)+'</small></div><span class="tag">'+r.tag+'</span></button>').join('')+'</div>':'<p class="muted">Nichts gefunden für „'+esc(S.q)+'“.</p>');
+}
+function bindSearch(el){bindGo(el);el.querySelectorAll('[data-chat-q]').forEach(b=>b.addEventListener('click',()=>{const q=b.dataset.chatQ;clearSearch();openChat(q)}))}
 function bindGo(el){el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
   if(+b.dataset.go===PG.familie){if(b.dataset.tab){S.famTab=b.dataset.tab;renderFamily()}go(PG.familie);return}
   if(b.dataset.tab)S.calTab=b.dataset.tab;
@@ -1084,13 +1135,68 @@ function aiCardHtml(){
   let a=null;try{a=assist(S.q)}catch(e){a=null}
   return a?'<div class="card ai" aria-live="polite"><div class="aihead">✨ Frahm</div><div class="aibody">'+a+'</div></div>':'';
 }
-function bindAi(el){
+function bindAi(el,draft){
+  draft=draft||S.aiDraft;
   el.querySelectorAll('[data-ai-new]').forEach(b=>b.addEventListener('click',()=>openEventSheet(null,b.dataset.aiNew,b.dataset.aiTime?{time:b.dataset.aiTime}:null)));
-  const sv=el.querySelector('[data-ai-save]');if(sv)sv.onclick=async()=>{const d=S.aiDraft;if(!d||!S.db)return;try{await S.db.collection('events').add({title:d.title,place:d.place,date:d.date,time:d.time,persons:d.persons,desc:'',remind:REMIND_DEFAULT.slice(),at:Date.now(),by:S.name||''});toast('Termin eingetragen');clearSearch();S.calSel=d.date;const x=parse(d.date);S.calMonth=new Date(x.getFullYear(),x.getMonth(),1);S.calTab='termine';renderCal()}catch(e){handleWriteError(e)}};
-  const ed=el.querySelector('[data-ai-edit]');if(ed)ed.onclick=()=>{const d=S.aiDraft||{};openEventSheet(null,d.date||key(today()),d)};
+  const sv=el.querySelector('[data-ai-save]');if(sv)sv.onclick=async()=>{const d=draft;if(!d||!S.db||sv.disabled)return;sv.disabled=true;try{await S.db.collection('events').add({title:d.title,place:d.place,date:d.date,time:d.time,persons:d.persons,desc:'',remind:REMIND_DEFAULT.slice(),at:Date.now(),by:S.name||''});toast('Termin eingetragen');sv.textContent='✓ Eingetragen';S.calSel=d.date;const x=parse(d.date);S.calMonth=new Date(x.getFullYear(),x.getMonth(),1);S.calTab='termine';renderCal()}catch(e){handleWriteError(e)}};
+  const ed=el.querySelector('[data-ai-edit]');if(ed)ed.onclick=()=>{const d=draft||{};openEventSheet(null,d.date||key(today()),d)};
   const wx=el.querySelector('[data-ai-wx]');if(wx)wx.onclick=openWxSheet;
-  el.querySelectorAll('[data-ask]').forEach(b=>b.addEventListener('click',()=>{qi.value=b.dataset.ask;qi.dispatchEvent(new Event('input'))}));
+  el.querySelectorAll('[data-ask]').forEach(b=>b.addEventListener('click',()=>chatSend(b.dataset.ask)));
+  el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{closeChat();go(+b.dataset.go)}));
 }
+/* ---------- KI-Chat ---------- */
+function chatLoad(){try{const j=JSON.parse(lsGet('frahm-chat')||'[]');return Array.isArray(j)?j.slice(-40):[]}catch(e){return []}}
+function chatStore(){try{localStorage.setItem('frahm-chat',JSON.stringify(S.chat.slice(-40).map(m=>({r:m.r,h:m.h,t:m.t,d:m.d||null,at:m.at}))))}catch(e){}}
+function aiReply(q){
+  S.aiDraft=null;let a=null;try{a=assist(q)}catch(e){a=null}
+  if(a)return {h:a,d:S.aiDraft};
+  const res=searchResults(q).slice(0,5);
+  if(res.length)return {h:'<p>Dazu habe ich in Frahm das hier gefunden:</p><ul class="ailist">'+res.map(r=>'<li><span><b>'+esc(r.title)+'</b><small>'+esc(r.tag+' · '+r.sub)+'</small></span></li>').join('')+'</ul>'};
+  const hi=/^(hallo|hi|hey|moin|guten (morgen|tag|abend)|servus)\b/i.test(q.trim()),thx=/danke|super|cool|top/i.test(q);
+  if(hi)return {h:'<p>Hallo'+(S.name?' '+esc(S.name):'')+'! 👋 Ich bin die Frahm KI. Ich kenne euren Kalender, die Aufgaben, Bella, das Wetter in Todendorf und wer wann zuhause ist. Was möchtest du wissen?</p>'};
+  if(thx)return {h:'<p>Gern! 😊 Sag Bescheid, wenn du noch etwas brauchst.</p>'};
+  return {h:'<p>Das habe ich leider nicht verstanden. Ich kann dir zum Beispiel bei diesen Sachen helfen:</p><div class="chips">'+ASK_EXAMPLES.slice(0,4).map(x=>'<button class="chip" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>'};
+}
+function chatMsgHtml(m,i){
+  if(m.r==='u')return '<div class="msg me"><div class="bub">'+esc(m.t)+'</div></div>';
+  return '<div class="msg ai" data-mi="'+i+'"><span class="aiorb sm">'+ICON.spark+'</span><div class="bub">'+m.h+'</div></div>';
+}
+function chatRender(scroll){
+  const box=$('#chatLog');if(!box)return;
+  if(!S.chat.length){
+    box.innerHTML='<div class="chatintro"><span class="aiorb lg">'+ICON.spark+'</span><h2>Hallo'+(S.name?' '+esc(S.name):'')+', ich bin die Frahm KI</h2><p class="muted">Ich kenne euren Kalender, Aufgaben, Bella, die Zeiten der Familie und das Wetter in Todendorf. Ich kann auch Termine für euch eintragen.</p><div class="chatex">'+ASK_EXAMPLES.map(x=>'<button class="chatq" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div>';
+    bindAi(box);return;
+  }
+  box.innerHTML=S.chat.map(chatMsgHtml).join('')+(S.chatTyping?'<div class="msg ai"><span class="aiorb sm pulse">'+ICON.spark+'</span><div class="bub typing" aria-label="Frahm KI denkt nach"><i></i><i></i><i></i></div></div>':'');
+  box.querySelectorAll('[data-mi]').forEach(el=>bindAi(el,S.chat[+el.dataset.mi].d));
+  if(scroll!==false)box.scrollTop=box.scrollHeight;
+}
+function chatSend(text){
+  text=String(text||'').trim();if(!text||S.chatTyping)return;
+  S.chat.push({r:'u',t:text,at:Date.now()});S.chatTyping=true;chatRender();chatStore();
+  const inp=$('#chatIn');if(inp){inp.value='';inp.style.height=''}
+  setTimeout(()=>{const r=aiReply(text);S.chatTyping=false;S.chat.push({r:'a',h:r.h,d:r.d||null,at:Date.now()});chatStore();chatRender()},450+Math.min(700,text.length*12));
+}
+function openChat(q){
+  if(!S.chat)S.chat=chatLoad();
+  let el=$('#chat');
+  if(!el){el=document.createElement('div');el.id='chat';el.className='chat';el.setAttribute('role','dialog');el.setAttribute('aria-label','Frahm KI');document.body.appendChild(el)}
+  el.innerHTML='<div class="chathead"><button class="iconbtn" id="chatBack" aria-label="Zurück">'+ICON.left+'</button><span class="aiorb sm">'+ICON.spark+'</span><div class="ct"><b>Frahm KI <span class="aibadge">KI</span></b><small>Dein Familien-Assistent · antwortet sofort</small></div><button class="linkbtn" id="chatNew" aria-label="Neuer Chat">Neu</button></div>'+
+    '<div class="chatlog" id="chatLog" aria-live="polite"></div>'+
+    '<form class="chatbar" id="chatForm"><textarea id="chatIn" rows="1" placeholder="Frag die Frahm KI …" aria-label="Nachricht an die Frahm KI" enterkeyhint="send"></textarea><button class="send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></form>'+
+    '<p class="chatnote">Die Frahm KI antwortet nur mit euren Daten aus der App und kann sich irren.</p>';
+  el.hidden=false;document.body.classList.add('chatopen');
+  $('#chatBack').onclick=closeChat;
+  $('#chatNew').onclick=()=>{S.chat=[];chatStore();chatRender()};
+  const inp=$('#chatIn');
+  inp.addEventListener('input',()=>{inp.style.height='';inp.style.height=Math.min(120,inp.scrollHeight)+'px'});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatSend(inp.value)}});
+  $('#chatForm').addEventListener('submit',e=>{e.preventDefault();chatSend(inp.value)});
+  chatRender();
+  if(q)chatSend(q);else setTimeout(()=>{if(!('ontouchstart' in window))inp.focus()},50);
+}
+function closeChat(){const el=$('#chat');if(el)el.hidden=true;document.body.classList.remove('chatopen')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#chat')&&!$('#chat').hidden&&!$('#sheetHost').innerHTML)closeChat()});
 const ASK_EXAMPLES=['Wann haben wir nächste Woche Zeit?','Regnet es morgen?','Wer ist gerade zuhause?','Was steht diese Woche an?','Trag Zahnarzt am Freitag um 15 Uhr ein','Wann kommt die gelbe Tonne?'];
 
 /* ---------- Wetter (Open-Meteo, ohne Schlüssel) ---------- */
