@@ -41,8 +41,10 @@ jobs:
           fi
       # GitHub startet Zeitpläne nur unregelmäßig. Darum startet jeder Lauf am Ende den nächsten;
       # der Zeitplan oben springt nur ein, falls diese Kette einmal abreißt.
+      # Nur nach einem erfolgreichen Lauf: bei einem Fehler würde sonst sofort ein Lauf nach dem anderen starten.
+      # Der Zeitplan (alle 10 Minuten) startet die Kette danach wieder.
       - name: Nächsten Lauf starten
-        if: always()
+        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run push.yml --repo "${{ github.repository }}" --ref main

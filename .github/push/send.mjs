@@ -57,7 +57,12 @@ async function claim(id, date) {
 }
 async function del(path) { if (!DRY) await fetch(`${BASE}/${path}?key=${API_KEY}`, { method: 'DELETE' }); }
 
-const pushCfg = await get('config/push');
+// Beim Start bis zu 5 Minuten auf Firestore warten, statt sofort abzubrechen (z. B. Kontingent kurz erschöpft).
+let pushCfg;
+for (let i = 0; ; i++) {
+  try { pushCfg = await get('config/push'); break; }
+  catch (err) { if (i >= 4) throw err; console.log('Firestore nicht erreichbar, neuer Versuch in 1 Minute:', err.message); await new Promise(r => setTimeout(r, 6e4)); }
+}
 if (!pushCfg || !pushCfg.vapidPublic) { console.log('Push ist in der App noch nicht eingerichtet.'); process.exit(0); }
 webpush.setVapidDetails('mailto:frahm@users.noreply.github.com', pushCfg.vapidPublic, VAPID_PRIVATE);
 
@@ -94,12 +99,14 @@ function nextPickup(muell, bin, from) {
   const n = Math.ceil(diffDays(d, floor) / step); return addDays(d, n * step);
 }
 
-/* ---------- Daten, höchstens alle 5 Minuten neu geladen ----------
-   Firestore erlaubt im kostenlosen Tarif 50.000 Lesezugriffe pro Tag, die App der Familie braucht davon auch etwas. */
-let cache = null, cacheAt = 0;
+/* ---------- Daten, sparsam geladen ----------
+   Firestore erlaubt im kostenlosen Tarif 50.000 Lesezugriffe pro Tag, die App der Familie braucht davon auch etwas.
+   Termine, Aufgaben, Müll und Geräte höchstens alle 10 Minuten, Geburtstage (ändern sich selten) nur einmal pro Lauf. */
+let cache = null, cacheAt = 0, bdays = null;
 async function data() {
-  if (cache && Date.now() - cacheAt < 5 * 6e4) return cache;
-  const [tasks, events, bdays, muellDoc, subs] = await Promise.all([list('tasks'), list('events'), list('birthdays'), get('config/muell'), list('push')]);
+  if (cache && Date.now() - cacheAt < 10 * 6e4) return cache;
+  if (!bdays) bdays = await list('birthdays');
+  const [tasks, events, muellDoc, subs] = await Promise.all([list('tasks'), list('events'), get('config/muell'), list('push')]);
   cache = { tasks, events, bdays, muellDoc, subs }; cacheAt = Date.now();
   return cache;
 }
