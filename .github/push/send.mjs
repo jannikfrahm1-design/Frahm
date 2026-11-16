@@ -164,7 +164,7 @@ async function due() {
       const to = new Date(Math.min(+from + 90 * 6e4, +next, +start));
       if (!inWin(from, to)) return;
       const days = diffDays(today, parse(e.date));
-      const when = (days === 0 ? 'Heute' : days === 1 ? 'Morgen' : days === 2 ? 'Übermorgen' : `Am ${parse(e.date).getDate()}.${parse(e.date).getMonth() + 1}.`) + (timed ? ` um ${e.time} Uhr` : '');
+      const when = (days === 0 ? 'Heute' : days === 1 ? 'Morgen' : days === 2 ? 'Übermorgen' : `Am ${parse(e.date).getDate()}.${parse(e.date).getMonth() + 1}.`) + (timed ? ` um ${e.time} Uhr` : '') + (/^\d{4}-\d\d-\d\d$/.test(e.endDate || '') && e.endDate > e.date ? ` bis ${parse(e.endDate).getDate()}.${parse(e.endDate).getMonth() + 1}.` : '');
       const rest = [e.place, Array.isArray(e.persons) && e.persons.length ? e.persons.join(', ') : ''].filter(Boolean).join(' · ');
       out.push({ id: `ev_${e.id}_${e.date}_${e.time || 'x'}_${off}`, title: `📅 ${e.title}`, body: when + (rest ? ' · ' + rest : '') });
     });
