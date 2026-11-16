@@ -181,11 +181,11 @@ async function due() {
     for (const p of pkgs) {
       const what = p.label || (CARRIER_NAMES[p.carrier] || 'Ein') + '-Paket', forTxt = p.for ? ` für ${p.for}` : '';
       if (p.status === 'heute' && p.statusAt && key(new Date(p.statusAt)) === T)
-        out.push({ id: `pkg_heute_${p.id}_${T}`, title: '📦 Paket kommt heute', body: what + forTxt + (p.statusBy === 'DHL' ? ' · laut DHL im Zustellfahrzeug' : p.statusBy ? ` · Info von ${p.statusBy}` : ''), to: p.for || '', not: p.statusBy === 'DHL' ? '' : p.statusBy || '' });
+        out.push({ kind: 'pakete', id: `pkg_heute_${p.id}_${T}`, title: '📦 Paket kommt heute', body: what + forTxt + (p.statusBy === 'DHL' ? ' · laut DHL im Zustellfahrzeug' : p.statusBy ? ` · Info von ${p.statusBy}` : ''), to: p.for || '', not: p.statusBy === 'DHL' ? '' : p.statusBy || '' });
       if (p.status === 'zugestellt' && p.statusAt && now - p.statusAt < 3 * 36e5)
-        out.push({ id: `pkg_zu_${p.id}`, title: '📦 Paket ist angekommen', body: what + forTxt + ' · ' + (p.autoText || `laut ${p.statusBy || 'Paketdienst'} zugestellt`), to: p.for || '' });
+        out.push({ kind: 'pakete', id: `pkg_zu_${p.id}`, title: '📦 Paket ist angekommen', body: what + forTxt + ' · ' + (p.autoText || `laut ${p.statusBy || 'Paketdienst'} zugestellt`), to: p.for || '' });
       if (p.status === 'da' && p.receivedAt && now - p.receivedAt < 3 * 36e5 && p.for && p.for !== p.receivedBy)
-        out.push({ id: `pkg_da_${p.id}`, title: '📦 Dein Paket ist da', body: what + ' · angenommen von ' + (p.receivedBy || 'jemandem aus der Familie'), to: p.for });
+        out.push({ kind: 'pakete', id: `pkg_da_${p.id}`, title: '📦 Dein Paket ist da', body: what + ' · angenommen von ' + (p.receivedBy || 'jemandem aus der Familie'), to: p.for });
     }
   }
 
@@ -198,14 +198,14 @@ async function due() {
     const dl = at(today, c.due);
     if (!inWin(new Date(dl - 30 * 6e4), new Date(+dl + 60 * 6e4))) continue;
     const late = now >= dl;
-    out.push({ check: async () => !!(await get(`done/${T}_c-${c.id}`)), id: `frist_${T}_${c.id}`, title: late ? '⏰ Frist vorbei' : '⏰ Bald fällig', body: `${c.t}: ${late ? 'sollte bis' : 'bis'} ${c.due} Uhr erledigt sein`, to: c.who || '' });
+    out.push({ kind: 'aufgaben', check: async () => !!(await get(`done/${T}_c-${c.id}`)), id: `frist_${T}_${c.id}`, title: late ? '⏰ Frist vorbei' : '⏰ Bald fällig', body: `${c.t}: ${late ? 'sollte bis' : 'bis'} ${c.due} Uhr erledigt sein`, to: c.who || '' });
   }
 
   // Müll: am Vorabend ab 18 Uhr
   if (inWin(at(today, '18:00'), at(today, '22:00'))) {
     const muell = muellDoc || {};
     const bins = BINS.filter(b => { const p = nextPickup(muell, b, tomorrow); return p && key(p) === key(tomorrow); });
-    if (bins.length) out.push({ id: `muell_${key(tomorrow)}`, title: '🗑️ Morgen ist Müllabfuhr', body: bins.map(b => b.n).join(', ') + ' – heute Abend rausstellen' });
+    if (bins.length) out.push({ kind: 'muell', id: `muell_${key(tomorrow)}`, title: '🗑️ Morgen ist Müllabfuhr', body: bins.map(b => b.n).join(', ') + ' – heute Abend rausstellen' });
   }
 
   // Geburtstage: am Tag ab 8 Uhr
@@ -218,7 +218,7 @@ async function due() {
       if (mo === 1 && d === 29 && addDays(new Date(today.getFullYear(), 1, 28), 1).getMonth() !== 1) hit = today.getMonth() === 1 && today.getDate() === 28;
       if (!hit || (y && y > today.getFullYear())) continue;
       const age = y ? today.getFullYear() - y : null;
-      out.push({ id: `bd_${T}_${b.id}`, title: '🎂 Geburtstag', body: `${b.name} hat heute Geburtstag${age ? ` und wird ${age}` : ''}! 🎉` });
+      out.push({ kind: 'geburtstage', id: `bd_${T}_${b.id}`, title: '🎂 Geburtstag', body: `${b.name} hat heute Geburtstag${age ? ` und wird ${age}` : ''}! 🎉` });
     }
   }
 
@@ -238,10 +238,21 @@ async function due() {
       const days = diffDays(today, parse(e.date));
       const when = (days === 0 ? 'Heute' : days === 1 ? 'Morgen' : days === 2 ? 'Übermorgen' : `Am ${parse(e.date).getDate()}.${parse(e.date).getMonth() + 1}.`) + (timed ? ` um ${e.time} Uhr` : '') + (/^\d{4}-\d\d-\d\d$/.test(e.endDate || '') && e.endDate > e.date ? ` bis ${parse(e.endDate).getDate()}.${parse(e.endDate).getMonth() + 1}.` : '');
       const rest = [e.place, Array.isArray(e.persons) && e.persons.length ? e.persons.join(', ') : ''].filter(Boolean).join(' · ');
-      out.push({ id: `ev_${e.id}_${e.date}_${e.time || 'x'}_${off}`, title: `📅 ${e.title}`, body: when + (rest ? ' · ' + rest : '') });
+      out.push({ kind: 'termine', persons: Array.isArray(e.persons) ? e.persons : [], id: `ev_${e.id}_${e.date}_${e.time || 'x'}_${off}`, title: `📅 ${e.title}`, body: when + (rest ? ' · ' + rest : '') });
     });
   }
   return out;
+}
+
+/* ---------- Wünsche pro Handy (in der App unter Einstellungen > Benachrichtigungen) ----------
+   prefs.<art> = false: diese Art nicht schicken. mine: nur Termine, bei denen die Person eingetragen ist (oder ohne Personen).
+   quiet: 22 bis 7 Uhr nichts. Ältere Abos ohne diese Felder bekommen weiter alles. */
+function wants(s, it) {
+  const p = s.prefs || {};
+  if (it.kind && p[it.kind] === false) return false;
+  if (s.quiet && (now.getHours() >= 22 || now.getHours() < 7)) return false;
+  if (it.kind === 'termine' && s.mine && s.name && it.persons && it.persons.length && !it.persons.includes(s.name)) return false;
+  return true;
 }
 
 /* ---------- Senden ---------- */
@@ -254,7 +265,7 @@ async function tick() {
   const items = await due();
   console.log(`${hm(now)} · ${subs.length} Handy(s) angemeldet · ${items.length} fällig`);
   for (const it of items) {
-    const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to) && (!it.not || s.name !== it.not));
+    const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to) && (!it.not || s.name !== it.not) && wants(s, it));
     if (!targets.length || sent.has(it.id)) continue;
     if (it.check && await it.check()) { sent.add(it.id); continue; } // schon abgehakt
     sent.add(it.id);
