@@ -121,7 +121,7 @@ function nextPickup(muell, bin, from) {
 /* ---------- Daten, sparsam geladen ----------
    Firestore erlaubt im kostenlosen Tarif 50.000 Lesezugriffe pro Tag, die App der Familie braucht davon auch etwas.
    Termine, Aufgaben, Müll und Geräte höchstens alle 10 Minuten, Geburtstage (ändern sich selten) nur einmal pro Lauf. */
-let cache = null, cacheAt = 0, bdays = null, pkgs = null, pkgsAt = 0;
+let cache = null, cacheAt = 0, bdays = null, pkgs = null, pkgsAt = 0, notes = [];
 async function data() {
   if (!cache || Date.now() - cacheAt >= 10 * 6e4) {
     if (!bdays) bdays = await list('birthdays');
@@ -129,8 +129,12 @@ async function data() {
     cache = { tasks, events, bdays, muellDoc, subs }; cacheAt = Date.now();
   }
   // Pakete alle 5 Minuten, damit "Kommt heute" schnell ankommt
-  if (!pkgs || Date.now() - pkgsAt >= 5 * 6e4) { pkgs = await list('packages'); pkgsAt = Date.now(); }
-  return Object.assign({}, cache, { pkgs });
+  if (!pkgs || Date.now() - pkgsAt >= 5 * 6e4) {
+    pkgs = await list('packages'); pkgsAt = Date.now();
+    // Pinnwand: nur neue Nachrichten sind interessant
+    try { notes = await list('notes'); } catch (err) { notes = []; }
+  }
+  return Object.assign({}, cache, { pkgs, notes });
 }
 
 /* ---------- Pakete: DHL-Status abfragen ----------
@@ -174,7 +178,14 @@ const sent = new Set(); // in diesem Lauf schon erledigt, spart Lese- und Schrei
 /* ---------- Was ist fällig? ---------- */
 async function due() {
   const out = []; // {id, title, body, to?: name}
-  const { tasks, events, bdays, muellDoc, pkgs } = await data();
+  const { tasks, events, bdays, muellDoc, pkgs, notes } = await data();
+
+  // Pinnwand: neue Nachricht (höchstens 30 Minuten alt) an alle außer an die Person, die sie geschrieben hat
+  for (const n of notes) {
+    if (!n.text || !n.at || now - n.at > 30 * 6e4 || n.at > +now + 6e4) continue;
+    const txt = String(n.text);
+    out.push({ kind: 'pinnwand', id: `note_${n.id}`, title: `📌 ${n.by || 'Pinnwand'}`, body: txt.length > 140 ? txt.slice(0, 137) + '…' : txt, not: n.by || '' });
+  }
 
   // Pakete: "Kommt heute" (von Hand oder laut DHL), "zugestellt" laut DHL, "ist da" an den Empfänger. Nur 7 bis 22 Uhr.
   if (inWin(at(today, '07:00'), at(today, '22:00'))) {

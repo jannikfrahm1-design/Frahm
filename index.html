@@ -482,7 +482,7 @@ input[type="date"],input[type="time"]{color-scheme:var(--scheme)}
 .cal button:hover{background:var(--surface-2)}
 }
 /* ---------- Pakete ---------- */
-#shopPane,#pkgPane,#pkgBody{display:flex;flex-direction:column;gap:12px}
+#shopPane,#pkgPane,#pkgBody,#mealPane{display:flex;flex-direction:column;gap:12px}
 #pkgBody h3{margin:6px 0 0}
 #pkgBody .card h3{margin:0 0 8px}
 .pkgs{display:flex;flex-direction:column;gap:8px}
@@ -576,6 +576,44 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 :root[data-theme="light"] .can{box-shadow:0 4px 10px -6px rgba(16,24,40,.5)}
 :root[data-theme="light"] .scrim{background:rgba(15,23,42,.35)}
 :root[data-theme="black"] body{background:radial-gradient(120% 50% at 50% -12%,rgb(var(--a2-rgb) / .12),transparent 60%),#000}
+
+/* ---------- Pinnwand ---------- */
+#nav button.hasnew::before{content:"";position:absolute;top:5px;left:calc(50% + 7px);width:9px;height:9px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--bg)}
+.nbadge{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-style:normal;font-size:11px;font-weight:800;margin-left:4px;padding:0 5px;vertical-align:1px}
+.noteform{display:flex;gap:8px;align-items:flex-end}
+.noteform textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:14px;padding:12px 14px;font:inherit;font-size:16px;box-shadow:var(--hi)}
+.noteform textarea::placeholder{color:var(--ph)}
+.notes{display:flex;flex-direction:column;gap:10px}
+.note2{display:flex;gap:12px;align-items:flex-start;background:var(--grad-soft),var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;box-shadow:var(--sh-1)}
+.card .note2{background:var(--surface-2);box-shadow:none;padding:10px 12px;border-radius:14px}
+.note2.pin{border-color:rgba(255,181,71,.4);background:linear-gradient(135deg,rgba(255,181,71,.10),rgba(255,181,71,.02)),var(--surface)}
+.note2 .txt{flex:1;min-width:0}
+.note2 .meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:13px}
+.note2 .meta span{color:var(--muted)}
+.note2 .meta .pinl{color:var(--sun);font-weight:600}
+.note2 p{margin:3px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.nacts{display:flex;gap:16px;margin-top:2px}
+.nacts .linkbtn{padding:6px 0 0;font-size:13px}
+.linkbtn.danger{color:var(--danger)}
+.btn.danger{background:var(--danger);color:#fff;box-shadow:none}
+.av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;background:var(--c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
+/* ---------- Essensplan ---------- */
+.monthbar h2 .wk{display:block;font-family:var(--body);font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:0;margin-top:2px}
+.meals{display:flex;flex-direction:column;gap:8px}
+.meal{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--grad-soft),var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 14px 10px 10px;box-shadow:var(--sh-1);color:var(--fg)}
+.meal .md{flex:none;width:44px;text-align:center}
+.meal .md small{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.meal .md b{display:block;font-family:var(--display);font-weight:800;font-size:20px;line-height:1.1}
+.meal .txt{flex:1;min-width:0}
+.meal .txt b{display:block;font-weight:600;overflow-wrap:anywhere}
+.meal .txt span{display:block;font-size:13px;color:var(--muted)}
+.meal.empty{background:none;border-style:dashed;box-shadow:none}
+.meal.empty .txt span{color:var(--accent-3);font-weight:600;font-size:14px}
+.meal.past{opacity:.55}
+.meal.is-today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset,var(--sh-1)}
+.meal.is-today .md small{color:var(--accent-3)}
+.mealrow{gap:12px}
+.mealrow .mi{font-size:22px;flex:none;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--surface-2)}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -661,7 +699,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={chat:null,chatTyping:false,wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',shopTab:'einkauf',pkgs:[],page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={notes:[],meals:{},mealOff:0,chat:null,chatTyping:false,wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',shopTab:'einkauf',pkgs:[],page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -712,6 +750,7 @@ function go(i){
   track.style.transform='translateX('+(-S.page*100/PAGES.length)+'%)';
   document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-current',+b.dataset.i===S.page?'page':'false'));
   document.querySelectorAll('#dots i').forEach((d,j)=>d.classList.toggle('on',j===S.page));
+  if(S.page===PG.familie&&S.famTab==='pinnwand'&&typeof notesNew==='function'&&notesNew())setTimeout(renderFamily,0);
 }
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{if(+b.dataset.i===2&&S.page===2){clearSearch()}go(+b.dataset.i)}));
 (function swipe(){
@@ -839,6 +878,7 @@ function renderHome(){
   const pk=S.pkgs.filter(p=>pkgState(p)!=='da'),pkToday=pk.filter(p=>pkgState(p)==='heute'),pkGot=pk.filter(p=>pkgState(p)==='zugestellt');
   if(pkToday.length||pkGot.length)html+='<button class="res" data-go="'+PG.einkauf+'" data-tab="pakete" style="border-color:rgba(255,181,71,.45)"><div><b>📦 '+(pkGot.length?(pkGot.length===1?'Ein Paket wurde zugestellt':pkGot.length+' Pakete wurden zugestellt'):(pkToday.length===1?'Heute kommt ein Paket':'Heute kommen '+pkToday.length+' Pakete'))+'</b><small>'+esc((pkGot.length?pkGot:pkToday).map(pkgTitle).join(', '))+'</small></div><span class="tag">Pakete</span></button>';
   html+=statusNote();
+  html+=homeTodayHtml();
   if(H.wx)html+=wxCardHtml();
   if(H.ai)html+='<button class="aientry" id="aiEntry"><span class="aiorb">'+ICON.spark+'</span><span class="aitx"><b>Frahm KI</b><small>Frag mich nach freien Zeiten, Wetter, Terminen …</small></span><span class="aibadge">KI</span></button>';
   html+='<div class="card"><h3>Termine heute & morgen</h3><div class="evlist">'+[['Heute',t],['Morgen',addDays(t,1)]].map(([l,d])=>{const its=itemsOn(d);return '<p class="daylabel" style="margin-top:4px">'+l+' · '+fmtShort(d)+'</p>'+(its.length?its.map(evRow).join(''):'<p class="small muted" style="margin:0">Nichts eingetragen.</p>')}).join('')+'</div></div>';
@@ -880,6 +920,10 @@ function searchResults(qq){
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:PG.einkauf,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
   S.pkgs.forEach(p=>{if((pkgTitle(p)+' '+carrierOf(p).n+' '+(p.nr||'')+' paket sendung').toLowerCase().includes(q)){const st=pkgState(p);res.push({go:PG.einkauf,tab:'pakete',title:pkgTitle(p),sub:carrierOf(p).n+' · '+(st==='da'?'Angekommen':st==='heute'?'Kommt heute':st==='zugestellt'?'Zugestellt':'Unterwegs'),tag:'Paket'})}});
   if('pakete paket sendungsverfolgung'.includes(q))res.push({go:PG.einkauf,tab:'pakete',title:'Pakete',sub:S.pkgs.filter(p=>pkgState(p)!=='da').length+' unterwegs',tag:'Pakete'});
+  S.notes.forEach(n=>{if((n.text+' '+(n.by||'')+' pinnwand notiz').toLowerCase().includes(q))res.push({go:PG.familie,tab:'pinnwand',title:String(n.text).slice(0,60),sub:'Pinnwand'+(n.by?' · von '+n.by:''),tag:'Pinnwand'})});
+  Object.values(S.meals).forEach(m=>{if((m.text+' '+(m.items||[]).join(' ')+' essen kochen').toLowerCase().includes(q))res.push({go:PG.einkauf,tab:'essen',title:m.text,sub:fmtShort(parse(m.date))+(m.cook?' · kocht: '+m.cook:''),tag:'Essen'})});
+  if('essensplan essen kochen'.includes(q))res.push({go:PG.einkauf,tab:'essen',title:'Essensplan',sub:'Was gibt es diese Woche?',tag:'Essen'});
+  if('pinnwand notizen nachrichten'.includes(q))res.push({go:PG.familie,tab:'pinnwand',title:'Pinnwand',sub:S.notes.length+' Nachrichten',tag:'Pinnwand'});
   if('einkaufsliste einkaufen'.includes(q))res.push({go:PG.einkauf,title:'Einkaufsliste',sub:S.shop.filter(x=>!x.done).length+' offen',tag:'Einkauf'});
   S.events.forEach(e=>{if((e.title+' '+(e.place||'')+' '+(e.persons||[]).join(' ')+' '+(e.desc||'')+' termin kalender').toLowerCase().includes(q)){const d=parse(e.date);res.push({go:1,tab:'termine',day:e.date,title:e.title,sub:fmtShort(d)+(evMulti(e)?' – '+fmtShort(parse(evEnd(e))):'')+(d.getFullYear()!==t.getFullYear()?' '+d.getFullYear():'')+(e.time?' · '+e.time+' Uhr':'')+(e.place?' · '+e.place:''),tag:'Termin'})}});
   bdaysAll().forEach(b=>{if((b.name+' geburtstag').toLowerCase().includes(q))res.push({go:1,tab:'geburtstage',title:b.name,sub:'Geburtstag am '+bdLabel(b),tag:'Geburtstag'})});
@@ -1182,8 +1226,9 @@ function openEventDetail(id){
 function renderFamily(){
   const el=$('#p-familie');
   const rk=ranking(),max=rk.length?rk[0][1]:1;
-  let html='<h2>Familie Frahm</h2><div class="seg" role="group" aria-label="Bereich"><button data-ft="familie" aria-pressed="'+(S.famTab==='familie')+'">Familie</button><button data-ft="zeiten" aria-pressed="'+(S.famTab==='zeiten')+'">Zeiten</button></div>';
+  let html='<h2>Familie Frahm</h2><div class="seg" role="group" aria-label="Bereich"><button data-ft="familie" aria-pressed="'+(S.famTab==='familie')+'">Familie</button><button data-ft="pinnwand" aria-pressed="'+(S.famTab==='pinnwand')+'">Pinnwand'+(notesNew()?' <i class="nbadge">'+notesNew()+'</i>':'')+'</button><button data-ft="zeiten" aria-pressed="'+(S.famTab==='zeiten')+'">Zeiten</button></div>';
   if(S.famTab==='zeiten')html+=zeitenHtml();
+  else if(S.famTab==='pinnwand')html+=notesHtml();
   else html+='<div class="card"><h3>Wochen-Rangliste · seit Montag</h3>'+(rk.length?'<ol class="rank">'+rk.map((r,i)=>'<li><span class="pos">'+(i+1)+'</span><div><b>'+esc(r[0])+'</b><div class="bar"><i style="width:'+Math.round(r[1]/max*100)+'%"></i></div></div><span class="pts">'+r[1]+' P.</span></li>').join('')+'</ol><p class="small muted" style="margin:12px 0 0">Jede abgehakte Aufgabe gibt einen Punkt, auch bei Bella.</p>':'<p class="small muted" style="margin:0">Noch keine Punkte diese Woche. Jede abgehakte Aufgabe gibt einen Punkt, auch bei Bella.</p>')+'</div>'+
     '<button class="card setlink" id="famSet"><span class="ic">'+ICON_GEAR+'</span><span><b>Einstellungen</b><small>'+(S.name?esc(S.name)+' · ':'')+'Farben, Benachrichtigungen, Frahm KI</small></span><span class="chev" aria-hidden="true">›</span></button>';
   el.innerHTML=html;
@@ -1191,6 +1236,8 @@ function renderFamily(){
   el.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{S.name=b.dataset.n;lsSet('frahm-name',S.name);render();toast('Hallo '+S.name+'!');if(S.push==='on')pushSave()}));
   el.querySelectorAll('[data-sched]').forEach(b=>b.addEventListener('click',()=>openSchedSheet(b.dataset.sched)));
   const fs=$('#famSet');if(fs)fs.onclick=openSettings;
+  if(S.famTab==='pinnwand')bindNotes(el);
+  const fb=document.querySelector('#nav [data-i="4"]');if(fb)fb.classList.toggle('hasnew',notesNew()>0&&!(S.famTab==='pinnwand'&&S.page===PG.familie));
   renderSettings();
 }
 const ICON_GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>';
@@ -1199,7 +1246,7 @@ const ICON_GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 /* ---------- Einstellungen (pro Gerät) ----------
    Darstellung und Startseite: nur localStorage „frahm-ui“.
    Benachrichtigungen: localStorage „frahm-notify“ und zusätzlich im eigenen Push-Abo (push/<id>), damit der Dienst weiß, was dieses Handy bekommen soll. */
-const UI_DEF={theme:'dark',accent:'blau',contrast:'normal',size:'m',motion:'auto',bright:100,home:{wx:true,ai:true,rank:true,tiles:true,cams:true}};
+const UI_DEF={theme:'dark',accent:'blau',contrast:'normal',size:'m',motion:'auto',bright:100,home:{today:true,wx:true,ai:true,rank:true,tiles:true,cams:true}};
 function uiGet(){let u={};try{u=JSON.parse(lsGet('frahm-ui')||'{}')||{}}catch(e){}return Object.assign({},UI_DEF,u,{home:Object.assign({},UI_DEF.home,u.home||{})})}
 S.ui=uiGet();
 function uiSet(patch){S.ui=Object.assign({},S.ui,patch);lsSet('frahm-ui',JSON.stringify(S.ui));window.frahmApplyUI(S.ui)}
@@ -1207,9 +1254,9 @@ try{matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{i
 const THEMES=[['auto','Auto','linear-gradient(135deg,#F2F4F8 50%,#0C1220 50%)'],['light','Hell','#F2F4F8'],['dark','Dunkel','#0C1220'],['black','Schwarz','#000']];
 const ACCENTS=[['blau','Blau','#3D8BFF'],['violett','Violett','#8B5CF6'],['gruen','Grün','#10B981'],['tuerkis','Türkis','#06B6D4'],['orange','Orange','#F97316'],['rosa','Rosa','#EC4899'],['mono','Schwarz-Weiß','linear-gradient(135deg,#fff 50%,#111 50%)']];
 const SIZES=[['s','Klein'],['m','Normal'],['l','Groß'],['xl','Sehr groß']];
-const HOMEOPTS=[['wx','Wetter'],['ai','Frahm KI'],['rank','Rangliste'],['tiles','Schnellzugriff (Kacheln)'],['cams','Kameras']];
-const NOTIFY=[['termine','📅','Termine','Erinnerungen vor Terminen'],['geburtstage','🎂','Geburtstage','Morgens am Geburtstag'],['muell','🗑️','Müllabfuhr','Am Abend vorher'],['aufgaben','⏰','Aufgaben mit Frist','Kurz vor der Frist'],['pakete','📦','Pakete','Kommt heute, zugestellt, ist da']];
-const NOTIFY_DEF={termine:true,geburtstage:true,muell:true,aufgaben:true,pakete:true,mine:false,quiet:false};
+const HOMEOPTS=[['today','Essen heute & Pinnwand'],['wx','Wetter'],['ai','Frahm KI'],['rank','Rangliste'],['tiles','Schnellzugriff (Kacheln)'],['cams','Kameras']];
+const NOTIFY=[['termine','📅','Termine','Erinnerungen vor Terminen'],['geburtstage','🎂','Geburtstage','Morgens am Geburtstag'],['muell','🗑️','Müllabfuhr','Am Abend vorher'],['aufgaben','⏰','Aufgaben mit Frist','Kurz vor der Frist'],['pakete','📦','Pakete','Kommt heute, zugestellt, ist da'],['pinnwand','📌','Pinnwand','Neue Nachrichten der Familie']];
+const NOTIFY_DEF={termine:true,geburtstage:true,muell:true,aufgaben:true,pakete:true,pinnwand:true,mine:false,quiet:false};
 function nGet(){let n={};try{n=JSON.parse(lsGet('frahm-notify')||'{}')||{}}catch(e){}return Object.assign({},NOTIFY_DEF,n)}
 S.notify=nGet();
 let nSaveT;
@@ -1263,6 +1310,89 @@ function renderSettings(){
   bindPush(host);
 }
 $('#gear').addEventListener('click',openSettings);
+
+
+/* ---------- Pinnwand ----------
+   Firestore "notes": {text, by, at, pinned}. Jeder sieht alles; löschen kann nur, wer es geschrieben hat. */
+function notesSeen(){return +(lsGet('frahm-notes-seen')||0)}
+function notesNew(){const s=notesSeen();return S.notes.filter(n=>(n.at||0)>s&&n.by!==S.name).length}
+function notesSorted(){return S.notes.slice().sort((a,b)=>(!!b.pinned-!!a.pinned)||((b.at||0)-(a.at||0)))}
+function avatar(n){const c=personColor(n);return '<span class="av" style="--c:'+c+'">'+esc((n||'?').slice(0,1))+'</span>'}
+function noteCard(n,mini){
+  const mine=S.name&&n.by===S.name;
+  return '<div class="note2'+(n.pinned?' pin':'')+'">'+avatar(n.by)+'<div class="txt"><div class="meta"><b>'+esc(n.by||'Jemand')+'</b><span>'+ago(n.at||0)+'</span>'+(n.pinned?'<span class="pinl">📌 angeheftet</span>':'')+'</div><p>'+esc(n.text)+'</p>'+
+    (mini?'':'<div class="nacts">'+(S.canWrite?'<button class="linkbtn" data-npin="'+esc(n.id)+'">'+(n.pinned?'Loslösen':'Anheften')+'</button>':'')+(mine&&S.canWrite?'<button class="linkbtn danger" data-ndel="'+esc(n.id)+'">Löschen</button>':'')+'</div>')+'</div></div>';
+}
+function notesHtml(){
+  let h='<form class="noteform" id="noteForm"><textarea id="noteIn" maxlength="400" rows="2" placeholder="Nachricht an die Familie, z. B. „Bin um 18 Uhr zurück“" aria-label="Neue Nachricht"'+(S.canWrite?'':' disabled')+'></textarea><button class="btn" type="submit"'+(S.canWrite?'':' disabled')+'>Anheften</button></form>';
+  const list=notesSorted();
+  h+=list.length?'<div class="notes">'+list.map(n=>noteCard(n)).join('')+'</div>':'<div class="card"><b>Noch nichts an der Pinnwand</b><p class="small muted" style="margin:6px 0 0">Kurze Nachrichten für alle: Wer holt Leni ab? Handwerker kommt Dienstag. Schlüssel liegt im Briefkasten.</p></div>';
+  return h;
+}
+function bindNotes(el){
+  if(S.page===PG.familie&&notesNew())lsSet('frahm-notes-seen',String(Date.now()));
+  const f=el.querySelector('#noteForm');if(f)f.addEventListener('submit',async e=>{e.preventDefault();const i=$('#noteIn'),t=i.value.trim();if(!t||!S.db)return;i.value='';
+    try{await S.db.collection('notes').add({text:t,by:S.name||'',at:Date.now(),pinned:false});toast('An die Pinnwand geheftet')}catch(x){i.value=t;handleWriteError(x)}});
+  el.querySelectorAll('[data-npin]').forEach(b=>b.onclick=async()=>{const n=S.notes.find(x=>x.id===b.dataset.npin);if(!n)return;try{await S.db.collection('notes').doc(n.id).update({pinned:!n.pinned})}catch(x){handleWriteError(x)}});
+  el.querySelectorAll('[data-ndel]').forEach(b=>b.onclick=()=>{const n=S.notes.find(x=>x.id===b.dataset.ndel);if(!n)return;confirmSheet('Nachricht löschen?','„'+String(n.text).slice(0,80)+'“ wird für alle entfernt.','Löschen',async()=>{try{await S.db.collection('notes').doc(n.id).delete();toast('Gelöscht')}catch(x){handleWriteError(x)}})});
+}
+function confirmSheet(title,text,okLabel,fn){
+  const host=$('#sheetHost');
+  host.innerHTML='<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-label="'+esc(title)+'"><div><h2 style="font-size:20px">'+esc(title)+'</h2><p class="small muted" style="margin:4px 0 0">'+esc(text)+'</p></div><div class="row"><button class="btn danger" id="ok" style="flex:1">'+esc(okLabel)+'</button><button class="btn ghost" id="cancel">Abbrechen</button></div></div></div>';
+  const close=()=>{host.innerHTML=''};$('#cancel').onclick=close;$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
+  $('#ok').onclick=()=>{close();fn()};
+}
+
+/* ---------- Essensplan ----------
+   Firestore "meals", Dokument-ID = Datum (YYYY-MM-DD): {date, text, cook, items[], by, at}. */
+function mealWeek(){return addDays(weekStart(),S.mealOff*7)}
+function renderMeals(){
+  const el=$('#mealPane');if(!el)return;
+  const ws=mealWeek(),t=today(),we=addDays(ws,6);
+  let h='<div class="monthbar"><button class="iconbtn" id="mPrev" aria-label="Woche zurück">'+ICON.left+'</button><h2>'+(S.mealOff===0?'Diese Woche':S.mealOff===1?'Nächste Woche':'KW '+isoWeek(ws))+'<small class="wk">'+ws.getDate()+'.'+(ws.getMonth()+1)+'. – '+we.getDate()+'.'+(we.getMonth()+1)+'.</small></h2><button class="iconbtn" id="mNext" aria-label="Woche vor">'+ICON.right+'</button></div>';
+  h+='<div class="meals">';
+  for(let i=0;i<7;i++){const d=addDays(ws,i),k=key(d),m=S.meals[k],past=d<t;
+    h+='<button class="meal'+(k===key(t)?' is-today':'')+(past?' past':'')+(m?'':' empty')+'" data-meal="'+k+'"'+(S.canWrite?'':' disabled')+'><span class="md"><small>'+WDS[d.getDay()]+'</small><b>'+d.getDate()+'</b></span><span class="txt">'+(m?'<b>'+esc(m.text)+'</b><span>'+[m.cook?'kocht: '+esc(m.cook):'',m.items&&m.items.length?m.items.length+' Zutaten':''].filter(Boolean).join(' · ')+'</span>':'<span>+ Essen eintragen</span>')+'</span></button>'}
+  h+='</div><p class="pkghint">Tippe auf einen Tag. Zutaten kommen mit einem Tipp auf die Einkaufsliste.</p>';
+  el.innerHTML=h;
+  $('#mPrev').onclick=()=>{S.mealOff=Math.max(-2,S.mealOff-1);renderMeals()};
+  $('#mNext').onclick=()=>{S.mealOff=Math.min(4,S.mealOff+1);renderMeals()};
+  el.querySelectorAll('[data-meal]').forEach(b=>b.onclick=()=>openMealSheet(b.dataset.meal));
+}
+function openMealSheet(k){
+  const m=S.meals[k]||{},d=parse(k),host=$('#sheetHost');
+  const cooks=FAMILY.filter(p=>!p.dog).map(p=>p.n);
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="mealForm" aria-label="Essen"><div><h2 style="font-size:20px">'+longDate(d)+'</h2><p class="small muted" style="margin:2px 0 0">Was gibt es zu essen?</p></div>'+
+    '<label class="f">Gericht<input id="mText" maxlength="80" placeholder="z. B. Spaghetti Bolognese" value="'+esc(m.text||'')+'" autocomplete="off"></label>'+
+    '<div class="f"><span class="small muted" style="font-weight:600">Wer kocht?</span><div class="chips" style="margin-top:6px">'+cooks.map(n=>'<button type="button" class="chip" data-cook="'+n+'" aria-pressed="'+(m.cook===n)+'">'+n+'</button>').join('')+'</div></div>'+
+    '<label class="f">Zutaten (mit Komma trennen)<textarea id="mItems" rows="2" placeholder="Hackfleisch, Nudeln, Tomaten">'+esc((m.items||[]).join(', '))+'</textarea></label>'+
+    '<button class="btn ghost" type="button" id="mShop">🛒 Zutaten auf die Einkaufsliste</button>'+
+    '<div class="row"><button class="btn" type="submit" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div>'+
+    (m.text?'<button class="linkbtn danger" type="button" id="mDel" style="align-self:center">Eintrag entfernen</button>':'')+'</form></div>';
+  let cook=m.cook||'';
+  const close=()=>{host.innerHTML=''};$('#cancel').onclick=close;$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
+  host.querySelectorAll('[data-cook]').forEach(c=>c.onclick=()=>{cook=cook===c.dataset.cook?'':c.dataset.cook;host.querySelectorAll('[data-cook]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.cook===cook))});
+  const items=()=>$('#mItems').value.split(/[,\n;]+/).map(x=>x.trim()).filter(Boolean).slice(0,30);
+  $('#mShop').onclick=async()=>{const it=items();if(!it.length){toast('Erst Zutaten eintragen');$('#mItems').focus();return}
+    const have=new Set(S.shop.filter(x=>!x.done).map(x=>String(x.text).toLowerCase()));const add=it.filter(x=>!have.has(x.toLowerCase()));
+    if(!add.length){toast('Steht schon alles auf der Liste');return}
+    try{for(const x of add)await S.db.collection('shopping').add({text:x,by:S.name||'',at:Date.now(),done:false});toast(add.length+(add.length===1?' Zutat':' Zutaten')+' auf der Einkaufsliste')}catch(e){handleWriteError(e)}};
+  const del=$('#mDel');if(del)del.onclick=async()=>{try{await S.db.collection('meals').doc(k).delete();close();toast('Entfernt')}catch(e){handleWriteError(e)}};
+  $('#mealForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('#mText').value.trim();if(!text){$('#mText').focus();return}
+    try{await S.db.collection('meals').doc(k).set({date:k,text,cook,items:items(),by:S.name||'',at:Date.now()});close();toast('Gespeichert')}catch(x){handleWriteError(x)}});
+}
+
+/* ---------- Startseite: Essen heute + Pinnwand ---------- */
+function homeTodayHtml(){
+  if(!S.ui.home.today)return '';
+  const k=key(today()),m=S.meals[k],tm=S.meals[key(addDays(today(),1))];
+  const pinned=S.notes.filter(n=>n.pinned),fresh=S.notes.filter(n=>!n.pinned&&Date.now()-(n.at||0)<2*864e5);
+  const ns=pinned.concat(fresh.sort((a,b)=>(b.at||0)-(a.at||0))).slice(0,2);
+  let h='';
+  h+='<button class="res mealrow" data-go="'+PG.einkauf+'" data-tab="essen"><span class="mi" aria-hidden="true">🍽️</span><div><b>'+(m?'Heute: '+esc(m.text):'Was gibt es heute?')+'</b><small>'+(m?(m.cook?esc(m.cook)+' kocht':'Essensplan ansehen'):(tm?'Morgen: '+esc(tm.text):'Essen für die Woche planen'))+'</small></div><span class="tag">Essen</span></button>';
+  if(ns.length)h+='<div class="card"><div class="camhead"><h3>Pinnwand</h3><button class="linkbtn" data-go="'+PG.familie+'" data-tab="pinnwand" style="padding:0">Alle ›</button></div><div class="notes">'+ns.map(n=>noteCard(n,true)).join('')+'</div></div>';
+  return h;
+}
 
 /* ---------- Zeiten: Stundenplan & Arbeitszeiten ---------- */
 const WDN=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
@@ -2002,14 +2132,15 @@ async function pushInit(){
 function renderShop(){
   const el=$('#p-einkauf');
   if(!$('#shopForm')){
-    el.innerHTML='<h2 id="shopH">Einkaufsliste</h2><div class="seg" role="group" aria-label="Bereich"><button data-st="einkauf">Einkauf</button><button data-st="pakete">Pakete</button></div><div id="shopPane"><form class="shop-add" id="shopForm"><input id="shopIn" maxlength="60" placeholder="Was fehlt? z. B. Milch" autocomplete="off" aria-label="Neuer Eintrag"><button class="btn" type="submit">Dazu</button></form><div id="shopBody"></div></div><div id="pkgPane"><form class="shop-add" id="pkgForm"><input id="pkgIn" placeholder="Link oder Sendungsnummer einfügen" autocomplete="off" autocapitalize="off" aria-label="Link oder Sendungsnummer"><button class="btn" type="submit">Dazu</button></form><div id="pkgBody"></div></div>';
+    el.innerHTML='<h2 id="shopH">Einkaufsliste</h2><div class="seg" role="group" aria-label="Bereich"><button data-st="einkauf">Einkauf</button><button data-st="essen">Essen</button><button data-st="pakete">Pakete</button></div><div id="mealPane"></div><div id="shopPane"><form class="shop-add" id="shopForm"><input id="shopIn" maxlength="60" placeholder="Was fehlt? z. B. Milch" autocomplete="off" aria-label="Neuer Eintrag"><button class="btn" type="submit">Dazu</button></form><div id="shopBody"></div></div><div id="pkgPane"><form class="shop-add" id="pkgForm"><input id="pkgIn" placeholder="Link oder Sendungsnummer einfügen" autocomplete="off" autocapitalize="off" aria-label="Link oder Sendungsnummer"><button class="btn" type="submit">Dazu</button></form><div id="pkgBody"></div></div>';
     $('#shopForm').addEventListener('submit',addItem);
     $('#pkgForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#pkgIn').value.trim();if(!v){$('#pkgIn').focus();return}if(!S.db)return;openPkgSheet(null,v)});
     el.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{S.shopTab=b.dataset.st;renderShop()}));
   }
   el.querySelectorAll('[data-st]').forEach(b=>b.setAttribute('aria-pressed',S.shopTab===b.dataset.st));
-  $('#shopH').textContent=S.shopTab==='pakete'?'Pakete':'Einkaufsliste';
-  $('#shopPane').hidden=S.shopTab==='pakete';$('#pkgPane').hidden=S.shopTab!=='pakete';
+  $('#shopH').textContent=S.shopTab==='pakete'?'Pakete':S.shopTab==='essen'?'Essensplan':'Einkaufsliste';
+  $('#shopPane').hidden=S.shopTab!=='einkauf';$('#pkgPane').hidden=S.shopTab!=='pakete';$('#mealPane').hidden=S.shopTab!=='essen';
+  renderMeals();
   renderPkgs();
   $('#shopIn').disabled=S.canWrite===false;
   const open=S.shop.filter(x=>!x.done).sort((a,b)=>(a.at||0)-(b.at||0)),done=S.shop.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
@@ -2307,6 +2438,12 @@ function connect(){
   },fail));
   unsubs.push(base.collection('shopping').onSnapshot(snap=>{
     S.shop=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(x=>x.text);renderShop();renderHome();
+  },fail));
+  unsubs.push(base.collection('notes').onSnapshot(snap=>{
+    S.notes=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(n=>n.text);renderFamily();renderHome();
+  },fail));
+  unsubs.push(base.collection('meals').where('date','>=',key(addDays(today(),-21))).onSnapshot(snap=>{
+    const m={};snap.docs.forEach(d=>{const v=d.data();if(v&&v.date&&v.text)m[v.date]=Object.assign({id:d.id},v)});S.meals=m;renderShop();renderHome();
   },fail));
   unsubs.push(base.collection('packages').onSnapshot(snap=>{
     S.pkgs=snap.docs.map(d=>Object.assign({id:d.id},d.data()));renderShop();renderHome();
