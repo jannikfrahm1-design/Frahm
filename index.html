@@ -241,6 +241,10 @@ a{color:var(--accent-3);font-weight:600;text-decoration-color:rgba(125,180,255,.
 .chatnote{margin:0;text-align:center;font-size:11px;color:var(--muted);background:rgba(8,12,22,.85);padding:0 12px calc(8px + env(safe-area-inset-bottom,0px))}
 body.chatopen nav{display:none}
 /* Assistent */
+.aimd{margin:4px 0 8px;padding-left:20px}.aimd li{margin:2px 0}.msg.ai .bub code{font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:6px}
+.aiacts{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}.aiacts li{background:var(--accent-soft);border:1px solid rgba(61,139,255,.3);border-radius:12px;padding:7px 11px;font-size:13.5px;font-weight:600}
+.aiconf{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.aiconfd{margin:8px 0 0}
+.aisteps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
 .ai{border-color:rgba(61,139,255,.45);box-shadow:var(--sh-1),0 0 0 1px rgba(61,139,255,.12),0 16px 36px -20px rgba(37,99,235,.7)}
 .aihead{display:flex;align-items:center;gap:8px;font-weight:800;font-family:var(--display);font-size:15px;color:var(--accent-3);margin-bottom:8px;letter-spacing:-.01em}
 .aibody p{margin:0 0 8px}
@@ -1022,7 +1026,7 @@ function renderFamily(){
   let html='<h2>Familie Frahm</h2><div class="seg" role="group" aria-label="Bereich"><button data-ft="familie" aria-pressed="'+(S.famTab==='familie')+'">Familie</button><button data-ft="zeiten" aria-pressed="'+(S.famTab==='zeiten')+'">Zeiten</button></div>';
   if(S.famTab==='zeiten')html+=zeitenHtml();
   else html+='<div class="card"><h3>Wochen-Rangliste · seit Montag</h3>'+(rk.length?'<ol class="rank">'+rk.map((r,i)=>'<li><span class="pos">'+(i+1)+'</span><div><b>'+esc(r[0])+'</b><div class="bar"><i style="width:'+Math.round(r[1]/max*100)+'%"></i></div></div><span class="pts">'+r[1]+' P.</span></li>').join('')+'</ol><p class="small muted" style="margin:12px 0 0">Jede abgehakte Aufgabe gibt einen Punkt, auch bei Bella.</p>':'<p class="small muted" style="margin:0">Noch keine Punkte diese Woche. Jede abgehakte Aufgabe gibt einen Punkt, auch bei Bella.</p>')+'</div>'+
-    pushCard()+
+    pushCard()+aiCard()+
     '<div class="card"><h3>Wer benutzt dieses Handy?</h3><p class="small muted" style="margin:0 0 10px">Wird beim Abhaken vorausgewählt.</p><div class="chips">'+FAMILY.filter(p=>!p.dog).map(p=>'<button class="chip" data-n="'+p.n+'" aria-pressed="'+(S.name===p.n)+'">'+p.n+'</button>').join('')+'</div></div>';
   el.innerHTML=html;
   el.querySelectorAll('[data-ft]').forEach(b=>b.addEventListener('click',()=>{S.famTab=b.dataset.ft;renderFamily()}));
@@ -1031,6 +1035,8 @@ function renderFamily(){
   const pb=$('#pushOn');if(pb)pb.onclick=pushEnable;
   const po=$('#pushOff');if(po)po.onclick=pushDisable;
   const ps=$('#pushSetup');if(ps)ps.onclick=pushSetup;
+  const as=$('#aiSetup');if(as)as.onclick=aiSetupSheet;
+  const ao=$('#aiOpen');if(ao)ao.onclick=()=>openChat();
 }
 
 /* ---------- Zeiten: Stundenplan & Arbeitszeiten ---------- */
@@ -1280,7 +1286,7 @@ function bindAi(el,draft){
 }
 /* ---------- KI-Chat ---------- */
 function chatLoad(){try{const j=JSON.parse(lsGet('frahm-chat')||'[]');return Array.isArray(j)?j.slice(-40):[]}catch(e){return []}}
-function chatStore(){try{localStorage.setItem('frahm-chat',JSON.stringify(S.chat.slice(-40).map(m=>({r:m.r,h:m.h,t:m.t,d:m.d||null,at:m.at}))))}catch(e){}}
+function chatStore(){try{localStorage.setItem('frahm-chat',JSON.stringify(S.chat.slice(-40).map(m=>({r:m.r,h:m.h,t:m.t,g:m.g||'',acts:m.acts||null,conf:m.conf||null,d:m.d||null,at:m.at}))))}catch(e){}}
 function aiReply(q){
   S.aiDraft=null;let a=null;try{a=assist(q)}catch(e){a=null}
   if(a)return {h:a,d:S.aiDraft};
@@ -1293,32 +1299,33 @@ function aiReply(q){
 }
 function chatMsgHtml(m,i){
   if(m.r==='u')return '<div class="msg me"><div class="bub">'+esc(m.t)+'</div></div>';
-  return '<div class="msg ai" data-mi="'+i+'"><span class="aiorb sm">'+ICON.spark+'</span><div class="bub">'+m.h+'</div></div>';
+  return '<div class="msg ai" data-mi="'+i+'"><span class="aiorb sm">'+ICON.spark+'</span><div class="bub">'+m.h+gemMsgExtra(m,i)+'</div></div>';
 }
 function chatRender(scroll){
   const box=$('#chatLog');if(!box)return;
   if(!S.chat.length){
-    box.innerHTML='<div class="chatintro"><span class="aiorb lg">'+ICON.spark+'</span><h2>Hallo'+(S.name?' '+esc(S.name):'')+', ich bin die Frahm KI</h2><p class="muted">Ich kenne euren Kalender, Aufgaben, Bella, die Zeiten der Familie und das Wetter in Todendorf. Ich kann auch Termine für euch eintragen.</p><div class="chatex">'+ASK_EXAMPLES.map(x=>'<button class="chatq" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div>';
+    box.innerHTML='<div class="chatintro"><span class="aiorb lg">'+ICON.spark+'</span><h2>Hallo'+(S.name?' '+esc(S.name):'')+', ich bin die Frahm KI</h2><p class="muted">Ich kenne euren Kalender, Aufgaben, Bella, die Zeiten der Familie und das Wetter in Todendorf. '+(gemOn()?'Schreib mir ganz normal. Ich kann Termine, Aufgaben und Einkäufe für euch eintragen.':'Ich kann auch Termine für euch eintragen.')+'</p><div class="chatex">'+ASK_EXAMPLES.map(x=>'<button class="chatq" data-ask="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div>';
     bindAi(box);return;
   }
   box.innerHTML=S.chat.map(chatMsgHtml).join('')+(S.chatTyping?'<div class="msg ai"><span class="aiorb sm pulse">'+ICON.spark+'</span><div class="bub typing" aria-label="Frahm KI denkt nach"><i></i><i></i><i></i></div></div>':'');
-  box.querySelectorAll('[data-mi]').forEach(el=>bindAi(el,S.chat[+el.dataset.mi].d));
+  box.querySelectorAll('[data-mi]').forEach(el=>bindAi(el,S.chat[+el.dataset.mi].d));gemBindConf(box);
   if(scroll!==false)box.scrollTop=box.scrollHeight;
 }
 function chatSend(text){
   text=String(text||'').trim();if(!text||S.chatTyping)return;
   S.chat.push({r:'u',t:text,at:Date.now()});S.chatTyping=true;chatRender();chatStore();
   const inp=$('#chatIn');if(inp){inp.value='';inp.style.height=''}
+  if(gemOn()){gemSend(text).then(()=>{S.chatTyping=false;chatStore();chatRender()});return}
   setTimeout(()=>{const r=aiReply(text);S.chatTyping=false;S.chat.push({r:'a',h:r.h,d:r.d||null,at:Date.now()});chatStore();chatRender()},450+Math.min(700,text.length*12));
 }
 function openChat(q){
   if(!S.chat)S.chat=chatLoad();
   let el=$('#chat');
   if(!el){el=document.createElement('div');el.id='chat';el.className='chat';el.setAttribute('role','dialog');el.setAttribute('aria-label','Frahm KI');document.body.appendChild(el)}
-  el.innerHTML='<div class="chathead"><button class="iconbtn" id="chatBack" aria-label="Zurück">'+ICON.left+'</button><span class="aiorb sm">'+ICON.spark+'</span><div class="ct"><b>Frahm KI <span class="aibadge">KI</span></b><small>Dein Familien-Assistent · antwortet sofort</small></div><button class="linkbtn" id="chatNew" aria-label="Neuer Chat">Neu</button></div>'+
+  el.innerHTML='<div class="chathead"><button class="iconbtn" id="chatBack" aria-label="Zurück">'+ICON.left+'</button><span class="aiorb sm">'+ICON.spark+'</span><div class="ct"><b>Frahm KI <span class="aibadge">KI</span></b><small>'+(gemOn()?'Dein Familien-Assistent · mit Gemini':'Einfacher Modus · Gemini unter Familie einrichten')+'</small></div><button class="linkbtn" id="chatNew" aria-label="Neuer Chat">Neu</button></div>'+
     '<div class="chatlog" id="chatLog" aria-live="polite"></div>'+
     '<form class="chatbar" id="chatForm"><textarea id="chatIn" rows="1" placeholder="Frag die Frahm KI …" aria-label="Nachricht an die Frahm KI" enterkeyhint="send"></textarea><button class="send" type="submit" aria-label="Senden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></form>'+
-    '<p class="chatnote">Die Frahm KI antwortet nur mit euren Daten aus der App und kann sich irren.</p>';
+    '<p class="chatnote">'+(gemOn()?'Läuft über Google Gemini (Gratis-Version) und kann sich irren.':'Die Frahm KI antwortet nur mit euren Daten aus der App und kann sich irren.')+'</p>';
   el.hidden=false;document.body.classList.add('chatopen');
   $('#chatBack').onclick=closeChat;
   $('#chatNew').onclick=()=>{S.chat=[];chatStore();chatRender()};
@@ -1332,6 +1339,234 @@ function openChat(q){
 function closeChat(){const el=$('#chat');if(el)el.hidden=true;document.body.classList.remove('chatopen')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#chat')&&!$('#chat').hidden&&!$('#sheetHost').innerHTML)closeChat()});
 const ASK_EXAMPLES=['Wann haben wir nächste Woche Zeit?','Regnet es morgen?','Wer ist gerade zuhause?','Was steht diese Woche an?','Trag Zahnarzt am Freitag um 15 Uhr ein','Wann kommt die gelbe Tonne?'];
+
+/* ---------- Frahm KI mit Google Gemini ----------
+   Der Schlüssel liegt NICHT im Code, sondern in Firestore unter config/ai (nur mit Familien-Code lesbar).
+   Ohne Schlüssel, offline oder bei einem Fehler antwortet weiter der eingebaute Assistent oben. */
+const GEM_MODELS=['gemini-flash-latest','gemini-2.5-flash','gemini-flash-lite-latest','gemini-2.5-flash-lite'];
+const GEM_URL='https://generativelanguage.googleapis.com/v1beta/models/';
+function gemKey(){return S.aiCfg&&typeof S.aiCfg.geminiKey==='string'?S.aiCfg.geminiKey.trim():''}
+function gemOn(){return !!gemKey()}
+function gemText(h){const d=document.createElement('div');d.innerHTML=String(h||'').replace(/<\/(p|li|div)>/g,'\n').replace(/<br\s*\/?>/g,'\n');return (d.textContent||'').replace(/\n{3,}/g,'\n\n').trim()}
+function gemMd(s){
+  const inl=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[\s(])\*(?!\s)(.+?)\*(?=[\s).,!?:;]|$)/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  const out=[];let list=null;
+  const flush=()=>{if(list){out.push('<'+list.t+' class="aimd">'+list.i.map(x=>'<li>'+x+'</li>').join('')+'</'+list.t+'>');list=null}};
+  let para=[];const fp=()=>{if(para.length){out.push('<p>'+para.join('<br>')+'</p>');para=[]}};
+  String(s||'').replace(/\r/g,'').split('\n').forEach(line=>{
+    const l=line.trim();let m;
+    if(!l){fp();flush();return}
+    if((m=l.match(/^[-*•]\s+(.*)$/))){fp();if(!list||list.t!=='ul'){flush();list={t:'ul',i:[]}}list.i.push(inl(m[1]));return}
+    if((m=l.match(/^\d+[.)]\s+(.*)$/))){fp();if(!list||list.t!=='ol'){flush();list={t:'ol',i:[]}}list.i.push(inl(m[1]));return}
+    flush();
+    if((m=l.match(/^#{1,4}\s+(.*)$/))){fp();out.push('<p><b>'+inl(m[1])+'</b></p>');return}
+    para.push(inl(l));
+  });
+  fp();flush();return out.join('')||'<p>…</p>';
+}
+function gemDay(k){const d=parse(k);return WDS[d.getDay()]+' '+k}
+function gemContext(){
+  const t=today(),now=new Date(),L=[];
+  L.push('JETZT: '+WD[now.getDay()]+', '+key(now)+', '+nowHM(now)+' Uhr (Zeitzone Europe/Berlin). Kalenderwoche '+isoWeek(now)+'.');
+  L.push('Wer schreibt: '+(S.name||'unbekannt (nicht eingestellt)')+'.');
+  L.push('\nFAMILIE (Wohnort Todendorf, Schleswig-Holstein):');
+  FAMILY.forEach(p=>L.push('- '+p.n+' ('+p.role+')'));
+  if(S.wx&&S.wx.daily){
+    const w=S.wx,c=w.current||{};
+    L.push('\nWETTER Todendorf (Stand '+(S.wxAt?hhmm(S.wxAt):'?')+' Uhr):');
+    if(c.temperature_2m!=null)L.push('Jetzt: '+wmo(c.weather_code,c.is_day)[1]+', '+Math.round(c.temperature_2m)+'°C (gefühlt '+Math.round(c.apparent_temperature)+'°C), Wind '+Math.round(c.wind_speed_10m)+' km/h');
+    const dd=w.daily;(dd.time||[]).forEach((k,i)=>L.push('- '+gemDay(k)+': '+wmo(dd.weather_code[i],1)[1]+', '+Math.round(dd.temperature_2m_min[i])+' bis '+Math.round(dd.temperature_2m_max[i])+'°C, Regenrisiko '+(dd.precipitation_probability_max[i]??'?')+'%, '+(dd.precipitation_sum[i]??0)+' mm, Sonne '+String(dd.sunrise[i]||'').slice(11)+'–'+String(dd.sunset[i]||'').slice(11)));
+    const h=w.hourly;if(h&&h.time){const nk=key(now)+'T'+String(now.getHours()).padStart(2,'0');let st=h.time.findIndex(x=>x.slice(0,13)>=nk);if(st<0)st=0;
+      const hs=[];for(let i=st;i<Math.min(h.time.length,st+24);i+=2)hs.push(h.time[i].slice(5,13).replace('T',' ')+'h '+Math.round(h.temperature_2m[i])+'° '+(h.precipitation_probability[i]??0)+'%');
+      L.push('Stündlich (Zeit Temp Regenrisiko): '+hs.join(' | '))}
+  }else L.push('\nWETTER: gerade nicht geladen.');
+  const from=key(addDays(t,-14)),to=key(addDays(t,400));
+  const ev=S.events.filter(e=>evEnd(e)>=from&&e.date<=to).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,180);
+  L.push('\nTERMINE (letzte 2 Wochen und Zukunft; [id] Datum Zeit Titel):');
+  if(!ev.length)L.push('- keine');
+  ev.forEach(e=>L.push('- [id:'+e.id+'] '+gemDay(e.date)+(evMulti(e)?' bis '+gemDay(evEnd(e)):'')+(e.time?' '+e.time:' ganztägig')+' · '+e.title+(e.place?' · Ort: '+e.place:'')+(e.persons&&e.persons.length?' · mit: '+e.persons.join(', '):'')+(e.desc?' · Notiz: '+String(e.desc).slice(0,160):'')));
+  L.push('\nGEBURTSTAGE (nächster Termin):');
+  bdaysAll().map(b=>({b,n:bdNext(b)})).sort((a,b)=>a.n-b.n).forEach(x=>{const a=bdAge(x.b,x.n.getFullYear());L.push('- '+x.b.name+': '+bdLabel(x.b)+' → nächster am '+gemDay(key(x.n))+(a!=null?' (wird '+a+')':''))});
+  L.push('\nMÜLLABFUHR (nächste Termine):');
+  BINS.forEach(b=>{const n=nextPickups(b,t,3);L.push('- '+b.n+' ('+b.sub+'): '+(n.length?n.map(d=>gemDay(key(d))).join(', '):'nicht eingetragen'))});
+  L.push('\nAUFGABEN (taskId · Name · Tageszeit · Tage/Datum · Frist · zuständig):');
+  allTasks().forEach(x=>L.push('- [taskId:'+x.id+'] '+x.t+' · '+x.slot+' · '+(x.once?'einmalig am '+x.once:x.days?daysLabel(x):'täglich')+(x.due?' · bis '+x.due+' Uhr':'')+(x.who?' · '+x.who:'')+(x.custom?' (eigene Aufgabe)':'')));
+  BELLA_TASKS.forEach(x=>L.push('- [taskId:'+x.id+'] '+x.t+' · '+x.slot+' · täglich (Hund Bella)'));
+  [[-1,'Gestern'],[0,'Heute'],[1,'Morgen']].forEach(([o,lb])=>{const d=addDays(t,o),list=tasksFor(d).concat(BELLA_TASKS);
+    L.push(lb+' ('+key(d)+'): '+list.map(x=>{const v=isDone(d,x);return x.t+(x.slot?' ('+x.slot+')':'')+': '+(v?'erledigt von '+(v.name||'?')+(v.at?' um '+hhmm(v.at):''):'offen')}).join('; '))});
+  if(S.bella&&S.bella.med)L.push('Bellas Medikamente: '+S.bella.med);
+  const rk=ranking();L.push('Wochen-Rangliste (Punkte seit Montag): '+(rk.length?rk.map(r=>r[0]+' '+r[1]).join(', '):'noch keine'));
+  L.push('\nZEITEN (Arbeit/Schule, Mo–Fr):');
+  SCHED_PEOPLE.forEach(p=>{const parts=[];for(let wd=1;wd<=5;wd++){const d=schedDay(p.n,wd);parts.push(WDS[wd]+' '+(!d?'?':d.off?'frei':d.from&&d.to?d.from+'–'+d.to+(d.ho?' Homeoffice':''):'?'))}
+    L.push('- '+p.n+' ('+(p.kind==='school'?'Schule':'Arbeit')+'): '+parts.join(', ')+' · gerade: '+whereIs(p.n).txt)});
+  const open=S.shop.filter(x=>!x.done),got=S.shop.filter(x=>x.done);
+  L.push('\nEINKAUFSLISTE offen: '+(open.length?open.map(x=>'[id:'+x.id+'] '+x.text+(x.by?' (von '+x.by+')':'')).join('; '):'leer'));
+  if(got.length)L.push('Schon gekauft (im Wagen): '+got.map(x=>'[id:'+x.id+'] '+x.text).join('; '));
+  if(Array.isArray(S.pkgs)&&S.pkgs.length)L.push('\nPAKETE: '+S.pkgs.slice(0,30).map(p=>(p.label||p.carrier||'Paket')+(p.carrier?' ('+p.carrier+')':'')+(p.for?' für '+p.for:'')+' · Status: '+(p.status==='da'?'angekommen'+(p.receivedBy?', angenommen von '+p.receivedBy:''):p.status==='heute'?'kommt heute':'unterwegs')).join('; '));
+  return L.join('\n');
+}
+function gemSystem(){
+  return 'Du bist die „Frahm KI“, der persönliche Assistent der Familie Frahm in ihrer Familien-App. Du bist klug, warmherzig, locker und hilfsbereit, wie ein sehr fähiger Freund der Familie. Du sprichst Deutsch und duzt alle.\n'+
+  'So antwortest du:\n- Kurz und natürlich wie in einem Chat auf dem Handy. Meist 1 bis 4 Sätze, Listen nur wenn sie wirklich helfen. Kein Gerede über dich selbst.\n- Nutze die App-Daten unten. Erfinde keine Termine, Zeiten oder Einträge. Wenn etwas nicht in den Daten steht, sag das ehrlich.\n- Rechne relative Angaben (morgen, nächsten Freitag, in 2 Wochen) selbst anhand von JETZT aus und nenne bei Terminen Wochentag und Datum.\n- Du darfst auch allgemeine Fragen beantworten (Rezepte, Hausaufgaben, Ideen, Tipps, Texte schreiben, Erklärungen).\n- Benutze die Werkzeuge, wenn jemand etwas eintragen, ändern, abhaken oder auf die Einkaufsliste setzen möchte. Frag nur nach, wenn wirklich etwas Wichtiges fehlt (z. B. das Datum). Eine fehlende Uhrzeit ist kein Grund nachzufragen, dann ist der Termin ganztägig.\n- Nach einer Aktion bestätige kurz, was du getan hast.\n- Löschen geht nur mit Bestätigung: Wenn du ein Lösch-Werkzeug benutzt, erscheint beim Nutzer ein Knopf zum Bestätigen. Sag dann, dass er bitte auf den Knopf tippt.\n- Die IDs in eckigen Klammern sind nur für die Werkzeuge. Zeige sie nie dem Nutzer.\n- Müllabfuhr-Termine und Arbeitszeiten kannst du nicht ändern; sag dann, wo man das in der App macht (Kalender bzw. Familie > Zeiten).\n\n'+
+  '=== AKTUELLE DATEN AUS DER APP ===\n'+gemContext();
+}
+const GEM_PERSONS={type:'ARRAY',items:{type:'STRING',enum:FAMILY.map(p=>p.n)},description:'Wer ist dabei'};
+const GEM_TOOLS=[{functionDeclarations:[
+  {name:'termin_eintragen',description:'Trägt einen neuen Termin in den Familienkalender ein.',parameters:{type:'OBJECT',properties:{title:{type:'STRING',description:'Kurzer Titel, z. B. Zahnarzt'},date:{type:'STRING',description:'Startdatum YYYY-MM-DD'},endDate:{type:'STRING',description:'Enddatum YYYY-MM-DD, nur bei mehrtägigen Terminen'},time:{type:'STRING',description:'Uhrzeit HH:MM, leer lassen wenn ganztägig'},place:{type:'STRING',description:'Ort'},persons:GEM_PERSONS,desc:{type:'STRING',description:'Notiz'}},required:['title','date']}},
+  {name:'termin_aendern',description:'Ändert einen bestehenden Termin. Nur die Felder angeben, die sich ändern.',parameters:{type:'OBJECT',properties:{id:{type:'STRING',description:'Termin-ID aus den Daten'},title:{type:'STRING'},date:{type:'STRING',description:'YYYY-MM-DD'},endDate:{type:'STRING',description:'YYYY-MM-DD'},time:{type:'STRING',description:'HH:MM oder leer für ganztägig'},place:{type:'STRING'},persons:GEM_PERSONS,desc:{type:'STRING'}},required:['id']}},
+  {name:'termin_loeschen',description:'Bittet darum, einen Termin zu löschen. Der Nutzer muss im Chat noch bestätigen.',parameters:{type:'OBJECT',properties:{id:{type:'STRING'}},required:['id']}},
+  {name:'einkauf_hinzufuegen',description:'Setzt Sachen auf die Einkaufsliste. Jede Sache ein eigener Eintrag, gern mit Menge (z. B. „2 Liter Milch“).',parameters:{type:'OBJECT',properties:{items:{type:'ARRAY',items:{type:'STRING'}}},required:['items']}},
+  {name:'einkauf_abhaken',description:'Markiert Einträge der Einkaufsliste als gekauft oder wieder als offen.',parameters:{type:'OBJECT',properties:{ids:{type:'ARRAY',items:{type:'STRING'}},gekauft:{type:'BOOLEAN',description:'true = gekauft, false = wieder offen'}},required:['ids','gekauft']}},
+  {name:'einkauf_entfernen',description:'Bittet darum, Einträge von der Einkaufsliste zu löschen. Der Nutzer muss noch bestätigen.',parameters:{type:'OBJECT',properties:{ids:{type:'ARRAY',items:{type:'STRING'}}},required:['ids']}},
+  {name:'aufgabe_anlegen',description:'Legt eine neue Aufgabe an, wiederkehrend oder einmalig.',parameters:{type:'OBJECT',properties:{t:{type:'STRING',description:'Aufgabe, kurz'},slot:{type:'STRING',enum:['morgens','mittags','abends']},once:{type:'STRING',description:'YYYY-MM-DD für eine einmalige Aufgabe'},days:{type:'ARRAY',items:{type:'INTEGER'},description:'Wochentage für wiederkehrende Aufgaben, 0=Sonntag bis 6=Samstag; leer = jeden Tag'},due:{type:'STRING',description:'Frist HH:MM'},who:{type:'STRING',description:'Wer zuständig ist'}},required:['t','slot']}},
+  {name:'aufgabe_erledigt',description:'Hakt eine Aufgabe (auch von Bella) als erledigt ab.',parameters:{type:'OBJECT',properties:{taskId:{type:'STRING'},date:{type:'STRING',description:'YYYY-MM-DD, Standard heute'},name:{type:'STRING',description:'Wer es gemacht hat, Standard die schreibende Person'}},required:['taskId']}},
+  {name:'geburtstag_eintragen',description:'Trägt einen Geburtstag ein.',parameters:{type:'OBJECT',properties:{name:{type:'STRING'},date:{type:'STRING',description:'YYYY-MM-DD; Jahr unbekannt: 0000-MM-DD'}},required:['name','date']}}
+]}];
+const isD=s=>/^\d{4}-\d\d-\d\d$/.test(s||''),isT=s=>/^\d\d:\d\d$/.test(s||'');
+async function gemTool(name,a,ctx){
+  a=a||{};const db=S.db;if(!db)return {ok:false,fehler:'Keine Verbindung zum Speicher'};
+  const by=S.name||'Frahm KI',str=v=>String(v||'').trim();
+  if(name==='termin_eintragen'){
+    const title=str(a.title).slice(0,60);if(!title||!isD(a.date))return {ok:false,fehler:'Titel oder Datum fehlt/ungültig'};
+    const data={title,place:str(a.place).slice(0,80),date:a.date,time:isT(a.time)?a.time:'',persons:FAMILY.map(p=>p.n).filter(n=>(a.persons||[]).includes(n)),desc:str(a.desc).slice(0,500),remind:REMIND_DEFAULT.slice(),at:Date.now(),by};
+    if(isD(a.endDate)&&a.endDate>a.date)data.endDate=a.endDate;
+    await db.collection('events').add(data);ctx.acts.push('📅 Termin eingetragen: '+title+', '+fmtShort(parse(data.date))+(data.time?' um '+data.time:''));return {ok:true}}
+  if(name==='termin_aendern'){
+    const e=S.events.find(x=>x.id===a.id);if(!e)return {ok:false,fehler:'Termin nicht gefunden'};
+    const d=Object.assign({},e);delete d.id;
+    ['title','place','desc'].forEach(k=>{if(a[k]!=null)d[k]=str(a[k])});
+    if(isD(a.date)){const len=evMulti(e)?diffDays(parse(e.date),parse(evEnd(e))):0;d.date=a.date;if(len&&!isD(a.endDate))d.endDate=key(addDays(parse(a.date),len))}
+    if(a.time!=null)d.time=isT(a.time)?a.time:'';
+    if(Array.isArray(a.persons))d.persons=FAMILY.map(p=>p.n).filter(n=>a.persons.includes(n));
+    if(isD(a.endDate))d.endDate=a.endDate;
+    if(d.endDate&&d.endDate<=d.date)delete d.endDate;
+    if(!d.title)return {ok:false,fehler:'Titel darf nicht leer sein'};
+    await db.collection('events').doc(e.id).set(d);ctx.acts.push('✏️ Termin geändert: '+d.title+', '+fmtShort(parse(d.date))+(d.time?' um '+d.time:''));return {ok:true}}
+  if(name==='termin_loeschen'){
+    const e=S.events.find(x=>x.id===a.id);if(!e)return {ok:false,fehler:'Termin nicht gefunden'};
+    ctx.conf.push({k:'ev',ids:[e.id],l:'„'+e.title+'“ am '+fmtShort(parse(e.date))+' löschen'});return {ok:true,hinweis:'Wartet auf Bestätigung durch Knopf im Chat'}}
+  if(name==='einkauf_hinzufuegen'){
+    const items=(Array.isArray(a.items)?a.items:[a.items]).map(x=>str(x).slice(0,60)).filter(Boolean).slice(0,30);if(!items.length)return {ok:false,fehler:'Keine Einträge'};
+    for(const text of items)await db.collection('shopping').add({text,by,at:Date.now(),done:false});
+    ctx.acts.push('🛒 Auf die Einkaufsliste: '+items.join(', '));return {ok:true,hinzugefuegt:items}}
+  if(name==='einkauf_abhaken'){
+    const xs=S.shop.filter(x=>(a.ids||[]).includes(x.id));if(!xs.length)return {ok:false,fehler:'Einträge nicht gefunden'};
+    for(const x of xs)await db.collection('shopping').doc(x.id).update(a.gekauft?{done:true,doneBy:S.name||'',doneAt:Date.now()}:{done:false,doneBy:'',doneAt:0});
+    ctx.acts.push((a.gekauft?'✅ Gekauft: ':'↩️ Wieder offen: ')+xs.map(x=>x.text).join(', '));return {ok:true}}
+  if(name==='einkauf_entfernen'){
+    const xs=S.shop.filter(x=>(a.ids||[]).includes(x.id));if(!xs.length)return {ok:false,fehler:'Einträge nicht gefunden'};
+    ctx.conf.push({k:'shop',ids:xs.map(x=>x.id),l:xs.map(x=>x.text).join(', ')+' von der Liste löschen'});return {ok:true,hinweis:'Wartet auf Bestätigung durch Knopf im Chat'}}
+  if(name==='aufgabe_anlegen'){
+    const tt=str(a.t).slice(0,40);if(!tt)return {ok:false,fehler:'Aufgabe fehlt'};
+    const data={t:tt,slot:SLOTS.some(x=>x[0]===a.slot)?a.slot:slotNow(),who:str(a.who).slice(0,30),due:isT(a.due)?a.due:'',at:Date.now()};
+    if(isD(a.once)){if(a.once<key(today()))return {ok:false,fehler:'Datum liegt in der Vergangenheit'};data.once=a.once;data.days=[]}
+    else{const ds=[...new Set((a.days||[]).map(Number).filter(n=>n>=0&&n<=6))].sort();data.days=ds.length?ds:[0,1,2,3,4,5,6]}
+    await db.collection('tasks').add(data);ctx.acts.push('📝 Aufgabe angelegt: '+tt+(data.once?' ('+fmtShort(parse(data.once))+')':''));return {ok:true}}
+  if(name==='aufgabe_erledigt'){
+    const task=allTasks().concat(BELLA_TASKS).find(x=>x.id===a.taskId);if(!task)return {ok:false,fehler:'Aufgabe nicht gefunden'};
+    const d=isD(a.date)?parse(a.date):today();if(isDone(d,task))return {ok:true,hinweis:'War schon erledigt'};
+    const who=str(a.name)||S.name;if(!who)return {ok:false,fehler:'Bitte fragen, wer es gemacht hat'};
+    await db.collection('done').doc(key(d)+'_'+task.id).set({date:key(d),task:task.id,name:who,at:Date.now()});
+    ctx.acts.push('✅ Abgehakt: '+task.t+' ('+who+')');return {ok:true}}
+  if(name==='geburtstag_eintragen'){
+    const n=str(a.name).slice(0,40),dt=str(a.date);if(!n||!/^\d{4}-\d\d-\d\d$/.test(dt))return {ok:false,fehler:'Name oder Datum fehlt'};
+    await db.collection('birthdays').add({name:n,date:dt,at:Date.now()});ctx.acts.push('🎂 Geburtstag eingetragen: '+n);return {ok:true}}
+  return {ok:false,fehler:'Unbekanntes Werkzeug'};
+}
+function gemHistory(text){
+  const c=[];
+  (S.chat||[]).slice(-21,-1).forEach(m=>{
+    const role=m.r==='u'?'user':'model',tx=m.r==='u'?m.t:(m.g||gemText(m.h));if(!tx)return;
+    if(c.length&&c[c.length-1].role===role)c[c.length-1].parts[0].text+='\n'+tx;else c.push({role,parts:[{text:tx}]});
+  });
+  while(c.length&&c[0].role!=='user')c.shift();
+  if(c.length&&c[c.length-1].role==='user')c.pop();
+  c.push({role:'user',parts:[{text}]});return c;
+}
+async function gemCall(body){
+  const pref=lsGet('frahm-gem-model'),list=pref&&GEM_MODELS.includes(pref)?[pref].concat(GEM_MODELS.filter(x=>x!==pref)):GEM_MODELS;
+  let last;
+  for(const m of list){
+    let r;try{r=await fetch(GEM_URL+m+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':gemKey()},body:JSON.stringify(body)})}catch(e){throw {net:true}}
+    if(r.ok){lsSet('frahm-gem-model',m);return r.json()}
+    let j={};try{j=await r.json()}catch(e){}
+    const msg=(j.error&&j.error.message)||'';last={status:r.status,msg};
+    if(r.status===400&&/api key|API_KEY/i.test(msg+JSON.stringify(j)))throw {key:true};
+    if(r.status===403)throw {key:true,msg};
+    if(r.status===404||r.status===429||r.status>=500)continue;
+    throw last;
+  }
+  throw last||{};
+}
+async function gemAsk(text){
+  const ctx={acts:[],conf:[]},contents=gemHistory(text);
+  for(let step=0;step<6;step++){
+    const j=await gemCall({systemInstruction:{parts:[{text:gemSystem()}]},contents,tools:GEM_TOOLS,generationConfig:{temperature:0.7}});
+    const cand=j.candidates&&j.candidates[0],parts=(cand&&cand.content&&cand.content.parts)||[];
+    const calls=parts.filter(p=>p.functionCall);
+    if(!calls.length){
+      const out=parts.filter(p=>p.text&&!p.thought).map(p=>p.text).join('').trim();
+      return {text:out||(ctx.acts.length?'Erledigt! 👍':(cand&&cand.finishReason==='SAFETY'?'Dazu kann ich leider nichts sagen.':'Hm, da kam keine Antwort. Versuch es bitte nochmal.')),ctx};
+    }
+    contents.push(cand.content);
+    const resp=[];
+    for(const p of calls){let res;try{res=await gemTool(p.functionCall.name,p.functionCall.args,ctx)}catch(e){res={ok:false,fehler:e&&e.code==='permission-denied'?'Keine Berechtigung':'Speichern hat nicht geklappt'}}
+      resp.push({functionResponse:{name:p.functionCall.name,response:res}})}
+    contents.push({role:'user',parts:resp});
+  }
+  return {text:ctx.acts.length?'Erledigt! 👍':'Das war mir zu verschachtelt. Frag bitte nochmal etwas einfacher.',ctx};
+}
+function gemMsgExtra(m,i){
+  let h='';
+  if(m.acts&&m.acts.length)h+='<ul class="aiacts">'+m.acts.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul>';
+  if(m.conf&&m.conf.length)h+=m.conf.map((c,j)=>c.done?'<p class="small muted aiconfd">'+(c.done==='ok'?'✓ Gelöscht':'Abgebrochen')+'</p>':'<div class="aiconf"><button class="aibtn" data-cf="'+i+'.'+j+'">'+esc(c.l)+'</button><button class="aibtn ghost" data-cfx="'+i+'.'+j+'">Nein</button></div>').join('');
+  return h;
+}
+function gemBindConf(box){
+  const get=s=>{const [i,j]=s.split('.').map(Number);return S.chat[i]&&S.chat[i].conf&&S.chat[i].conf[j]};
+  box.querySelectorAll('[data-cf]').forEach(b=>b.onclick=async()=>{const c=get(b.dataset.cf);if(!c||c.done||!S.db)return;b.disabled=true;
+    try{const col=c.k==='ev'?'events':'shopping';for(const id of c.ids)await S.db.collection(col).doc(id).delete();c.done='ok';toast('Gelöscht')}catch(e){b.disabled=false;handleWriteError(e);return}
+    chatStore();chatRender(false)});
+  box.querySelectorAll('[data-cfx]').forEach(b=>b.onclick=()=>{const c=get(b.dataset.cfx);if(!c)return;c.done='no';chatStore();chatRender(false)});
+}
+async function gemSend(text){
+  try{
+    const r=await gemAsk(text);
+    S.chat.push({r:'a',h:gemMd(r.text),g:r.text+(r.ctx.acts.length?'\n[Ausgeführt: '+r.ctx.acts.join('; ')+']':''),acts:r.ctx.acts,conf:r.ctx.conf,at:Date.now()});
+  }catch(e){
+    const fb=aiReply(text);
+    const why=e&&e.key?'Der Gemini-Schlüssel funktioniert nicht (mehr). Unter Familie kannst du ihn neu eintragen.':e&&e.net?'Keine Internetverbindung zu Gemini, ich antworte im einfachen Modus.':e&&e.status===429?'Gemini ist gerade ausgelastet (Gratis-Limit). Ich antworte im einfachen Modus, später geht es wieder.':'Gemini hat gerade nicht geantwortet, ich antworte im einfachen Modus.';
+    S.chat.push({r:'a',h:'<p class="small muted">'+esc(why)+'</p>'+fb.h,d:fb.d||null,at:Date.now()});
+  }
+}
+function aiCard(){
+  const on=gemOn();
+  return '<div class="card"><h3>Frahm KI · Google Gemini</h3><p class="small muted" style="margin:0 0 10px">'+(on?'Eingerichtet. Die Frahm KI versteht ganz normale Sätze, kennt eure Daten und kann Termine, Aufgaben und den Einkauf für euch eintragen.':'Mit einem kostenlosen Schlüssel von Google wird die Frahm KI richtig schlau: Sie versteht ganz normale Sätze und kann für euch eintragen.')+'</p>'+
+    '<div class="row"><button class="btn'+(on?' ghost':'')+'" id="aiSetup"'+(S.canWrite?'':' disabled')+'>'+(on?'Schlüssel ändern':'Einrichten')+'</button>'+(on?'<button class="btn ghost" id="aiOpen">Chat öffnen</button>':'')+'</div></div>';
+}
+function aiSetupSheet(){
+  const host=$('#sheetHost'),on=gemOn();
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="aiForm" aria-label="Gemini einrichten"><div><h2 style="font-size:20px">Frahm KI mit Gemini</h2><p class="small muted" style="margin:4px 0 0">Einmal einrichten, dann gilt es für die ganze Familie.</p></div>'+
+    '<ol class="aisteps"><li>Unten auf <b>„Google AI Studio öffnen“</b> tippen und mit einem Google-Konto anmelden.</li><li>Auf <b>„Create API key“</b> (API-Schlüssel erstellen) tippen und den Schlüssel kopieren. Er beginnt mit <b>AIza</b>.</li><li>Hierher zurück, einfügen, speichern. Fertig.</li></ol>'+
+    '<a class="btn ghost" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Google AI Studio öffnen</a>'+
+    '<input id="aiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza…" aria-label="Gemini-Schlüssel" value="">'+
+    '<p class="small muted" style="margin:0">Kostenlos. Hinweis: Bei der Gratis-Version darf Google die Chat-Nachrichten zur Verbesserung nutzen. Der Schlüssel wird nur in eurem Familien-Speicher abgelegt, nicht im Code.</p>'+
+    '<div class="row"><button class="btn" type="submit" id="aiSave" style="flex:1">Speichern</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div>'+
+    (on?'<button class="linkbtn" type="button" id="aiOff" style="align-self:center">Gemini ausschalten</button>':'')+'</form></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
+  const off=$('#aiOff');if(off)off.onclick=async()=>{try{await S.db.collection('config').doc('ai').set({geminiKey:'',at:Date.now(),by:S.name||''},{merge:true});close();toast('Gemini ist aus')}catch(e){handleWriteError(e)}};
+  $('#aiForm').addEventListener('submit',async x=>{
+    x.preventDefault();const k=$('#aiKey').value.trim().replace(/\s+/g,''),b=$('#aiSave');
+    if(!/^AIza[\w-]{20,}$/.test(k)){toast('Das sieht nicht wie ein Gemini-Schlüssel aus');$('#aiKey').focus();return}
+    b.disabled=true;b.textContent='Prüfe …';
+    try{const r=await fetch(GEM_URL.replace(/\/$/,'')+'?pageSize=1',{headers:{'x-goog-api-key':k}});
+      if(!r.ok){b.disabled=false;b.textContent='Speichern';toast(r.status===400||r.status===403?'Google kennt diesen Schlüssel nicht':'Prüfen hat nicht geklappt, nochmal versuchen');return}}
+    catch(e){b.disabled=false;b.textContent='Speichern';toast('Keine Verbindung zu Google');return}
+    try{await S.db.collection('config').doc('ai').set({geminiKey:k,at:Date.now(),by:S.name||''},{merge:true});close();toast('Frahm KI ist jetzt schlau ✨')}catch(e){b.disabled=false;b.textContent='Speichern';handleWriteError(e)}
+  });
+}
 
 /* ---------- Wetter (Open-Meteo, ohne Schlüssel) ---------- */
 const WX_URL='https://api.open-meteo.com/v1/forecast?latitude=53.6927&longitude=10.3466&timezone=Europe%2FBerlin&forecast_days=7'+
@@ -1820,6 +2055,7 @@ function connect(){
     if(old&&old!==S.pushCfg.vapidPublic&&S.push==='on'){S.push='off';pushReg().then(r=>r.pushManager.getSubscription()).then(s=>s&&s.unsubscribe()).catch(()=>{})}
     renderFamily();pushInit();
   },fail));
+  unsubs.push(base.collection('config').doc('ai').onSnapshot(snap=>{S.aiCfg=snap.exists?snap.data():{};renderFamily()},fail));
   unsubs.push(base.collection('events').onSnapshot(snap=>{
     S.events=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(e=>e.title&&/^\d{4}-\d\d-\d\d$/.test(e.date||''));renderCal();renderHome();
   },fail));
