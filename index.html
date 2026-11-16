@@ -293,6 +293,7 @@ a{color:var(--accent-3);font-weight:600;text-decoration-color:rgb(var(--a3-rgb) 
 .chatnote{margin:0;text-align:center;font-size:11px;color:var(--muted);background:rgb(var(--glass) / .85);padding:0 12px calc(8px + env(safe-area-inset-bottom,0px))}
 body.chatopen nav,body.setopen nav{display:none}
 /* Assistent */
+.aisrc{margin:8px 0 0!important;font-size:12px;color:var(--muted)}.aisrc a{color:var(--accent-3);text-decoration:none}
 .aimd{margin:4px 0 8px;padding-left:20px}.aimd li{margin:2px 0}.msg.ai .bub code{font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:6px}
 .aiacts{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}.aiacts li{background:var(--accent-soft);border:1px solid rgb(var(--a-rgb) / .3);border-radius:12px;padding:7px 11px;font-size:13.5px;font-weight:600}
 .aiconf{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.aiconfd{margin:8px 0 0}
@@ -1510,7 +1511,7 @@ function bindAi(el,draft){
 }
 /* ---------- KI-Chat ---------- */
 function chatLoad(){try{const j=JSON.parse(lsGet('frahm-chat')||'[]');return Array.isArray(j)?j.slice(-40):[]}catch(e){return []}}
-function chatStore(){try{localStorage.setItem('frahm-chat',JSON.stringify(S.chat.slice(-40).map(m=>({r:m.r,h:m.h,t:m.t,g:m.g||'',acts:m.acts||null,conf:m.conf||null,d:m.d||null,at:m.at}))))}catch(e){}}
+function chatStore(){try{localStorage.setItem('frahm-chat',JSON.stringify(S.chat.slice(-40).map(m=>({r:m.r,h:m.h,t:m.t,g:m.g||'',acts:m.acts||null,src:m.src||null,conf:m.conf||null,d:m.d||null,at:m.at}))))}catch(e){}}
 function aiReply(q){
   S.aiDraft=null;let a=null;try{a=assist(q)}catch(e){a=null}
   if(a)return {h:a,d:S.aiDraft};
@@ -1631,7 +1632,7 @@ function gemContext(){
 }
 function gemSystem(){
   return 'Du bist die „Frahm KI“, der persönliche Assistent der Familie Frahm in ihrer Familien-App. Du bist klug, warmherzig, locker und hilfsbereit, wie ein sehr fähiger Freund der Familie. Du sprichst Deutsch und duzt alle.\nWenn jemand fragt, wer oder was du bist: Du bist die Frahm KI und läufst technisch mit Google Gemini (dem KI-Modell von Google). Das darfst und sollst du offen sagen. Streite nie ab, dass du Gemini nutzt.\n'+
-  'So antwortest du:\n- Kurz und natürlich wie in einem Chat auf dem Handy. Meist 1 bis 4 Sätze, Listen nur wenn sie wirklich helfen. Kein Gerede über dich selbst.\n- Nutze die App-Daten unten. Erfinde keine Termine, Zeiten oder Einträge. Wenn etwas nicht in den Daten steht, sag das ehrlich.\n- Rechne relative Angaben (morgen, nächsten Freitag, in 2 Wochen) selbst anhand von JETZT aus und nenne bei Terminen Wochentag und Datum.\n- Du darfst auch allgemeine Fragen beantworten (Rezepte, Hausaufgaben, Ideen, Tipps, Texte schreiben, Erklärungen).\n- Benutze die Werkzeuge, wenn jemand etwas eintragen, ändern, abhaken oder auf die Einkaufsliste setzen möchte. Frag nur nach, wenn wirklich etwas Wichtiges fehlt (z. B. das Datum). Eine fehlende Uhrzeit ist kein Grund nachzufragen, dann ist der Termin ganztägig.\n- Nach einer Aktion bestätige kurz, was du getan hast.\n- Löschen geht nur mit Bestätigung: Wenn du ein Lösch-Werkzeug benutzt, erscheint beim Nutzer ein Knopf zum Bestätigen. Sag dann, dass er bitte auf den Knopf tippt.\n- Die IDs in eckigen Klammern sind nur für die Werkzeuge. Zeige sie nie dem Nutzer.\n- Müllabfuhr-Termine und Arbeitszeiten kannst du nicht ändern; sag dann, wo man das in der App macht (Kalender bzw. Familie > Zeiten).\n\n'+
+  'So antwortest du:\n- Kurz und natürlich wie in einem Chat auf dem Handy. Meist 1 bis 4 Sätze, Listen nur wenn sie wirklich helfen. Kein Gerede über dich selbst.\n- Nutze die App-Daten unten. Erfinde keine Termine, Zeiten oder Einträge. Wenn etwas nicht in den Daten steht, sag das ehrlich.\n- Rechne relative Angaben (morgen, nächsten Freitag, in 2 Wochen) selbst anhand von JETZT aus und nenne bei Terminen Wochentag und Datum.\n- Du darfst auch allgemeine Fragen beantworten (Rezepte, Hausaufgaben, Ideen, Tipps, Texte schreiben, Erklärungen).\n- Benutze die Werkzeuge, wenn jemand etwas eintragen, ändern, abhaken oder auf die Einkaufsliste setzen möchte. Frag nur nach, wenn wirklich etwas Wichtiges fehlt (z. B. das Datum). Eine fehlende Uhrzeit ist kein Grund nachzufragen, dann ist der Termin ganztägig.\n- Nach einer Aktion bestätige kurz, was du getan hast.\n- Löschen geht nur mit Bestätigung: Wenn du ein Lösch-Werkzeug benutzt, erscheint beim Nutzer ein Knopf zum Bestätigen. Sag dann, dass er bitte auf den Knopf tippt.\n- Die IDs in eckigen Klammern sind nur für die Werkzeuge. Zeige sie nie dem Nutzer.\n- Für aktuelle Infos aus dem Internet (Nachrichten, Ergebnisse, Öffnungszeiten, Preise usw.) benutze internet_suchen, statt zu raten.\n- Müllabfuhr-Termine und Arbeitszeiten kannst du nicht ändern; sag dann, wo man das in der App macht (Kalender bzw. Familie > Zeiten).\n\n'+
   '=== AKTUELLE DATEN AUS DER APP ===\n'+gemContext();
 }
 const GEM_PERSONS={type:'ARRAY',items:{type:'STRING',enum:FAMILY.map(p=>p.n)},description:'Wer ist dabei'};
@@ -1644,6 +1645,7 @@ const GEM_TOOLS=[{functionDeclarations:[
   {name:'einkauf_entfernen',description:'Bittet darum, Einträge von der Einkaufsliste zu löschen. Der Nutzer muss noch bestätigen.',parameters:{type:'OBJECT',properties:{ids:{type:'ARRAY',items:{type:'STRING'}}},required:['ids']}},
   {name:'aufgabe_anlegen',description:'Legt eine neue Aufgabe an, wiederkehrend oder einmalig.',parameters:{type:'OBJECT',properties:{t:{type:'STRING',description:'Aufgabe, kurz'},slot:{type:'STRING',enum:['morgens','mittags','abends']},once:{type:'STRING',description:'YYYY-MM-DD für eine einmalige Aufgabe'},days:{type:'ARRAY',items:{type:'INTEGER'},description:'Wochentage für wiederkehrende Aufgaben, 0=Sonntag bis 6=Samstag; leer = jeden Tag'},due:{type:'STRING',description:'Frist HH:MM'},who:{type:'STRING',description:'Wer zuständig ist'}},required:['t','slot']}},
   {name:'aufgabe_erledigt',description:'Hakt eine Aufgabe (auch von Bella) als erledigt ab.',parameters:{type:'OBJECT',properties:{taskId:{type:'STRING'},date:{type:'STRING',description:'YYYY-MM-DD, Standard heute'},name:{type:'STRING',description:'Wer es gemacht hat, Standard die schreibende Person'}},required:['taskId']}},
+  {name:'internet_suchen',description:'Sucht live mit Google im Internet. Für alles Aktuelle oder was du nicht sicher weißt: Nachrichten, Sportergebnisse, Öffnungszeiten, Preise, Veranstaltungen, Fahrpläne, Wetter an anderen Orten, Produkte.',parameters:{type:'OBJECT',properties:{frage:{type:'STRING',description:'Die Suchfrage, möglichst genau, auf Deutsch'}},required:['frage']}},
   {name:'geburtstag_eintragen',description:'Trägt einen Geburtstag ein.',parameters:{type:'OBJECT',properties:{name:{type:'STRING'},date:{type:'STRING',description:'YYYY-MM-DD; Jahr unbekannt: 0000-MM-DD'}},required:['name','date']}}
 ]}];
 const isD=s=>/^\d{4}-\d\d-\d\d$/.test(s||''),isT=s=>/^\d\d:\d\d$/.test(s||'');
@@ -1695,6 +1697,14 @@ async function gemTool(name,a,ctx){
   if(name==='geburtstag_eintragen'){
     const n=str(a.name).slice(0,40),dt=str(a.date);if(!n||!/^\d{4}-\d\d-\d\d$/.test(dt))return {ok:false,fehler:'Name oder Datum fehlt'};
     await db.collection('birthdays').add({name:n,date:dt,at:Date.now()});ctx.acts.push('🎂 Geburtstag eingetragen: '+n);return {ok:true}}
+  if(name==='internet_suchen'){
+    const q=str(a.frage).slice(0,300);if(!q)return {ok:false,fehler:'Keine Frage'};
+    let j;try{j=await gemCall({contents:[{role:'user',parts:[{text:'Heute ist '+WD[new Date().getDay()]+', '+key(new Date())+'. Ort der Familie: Todendorf bei Hamburg (Schleswig-Holstein). Suche mit Google und beantworte kurz und sachlich auf Deutsch: '+q}]}],tools:[{google_search:{}}]})}
+    catch(e){return {ok:false,fehler:e&&e.status===429?'Suchlimit für heute erreicht':'Suche hat gerade nicht geklappt'}}
+    const c=j.candidates&&j.candidates[0],tx=((c&&c.content&&c.content.parts)||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('').trim();
+    const ch=(c&&c.groundingMetadata&&c.groundingMetadata.groundingChunks)||[];
+    ch.forEach(x=>{if(x.web&&x.web.uri&&ctx.src.length<4&&!ctx.src.some(s=>s.u===x.web.uri))ctx.src.push({u:x.web.uri,t:String(x.web.title||'Quelle').slice(0,60)})});
+    return tx?{ok:true,ergebnis:tx}:{ok:false,fehler:'Nichts gefunden'}}
   return {ok:false,fehler:'Unbekanntes Werkzeug'};
 }
 function gemHistory(text){
@@ -1723,7 +1733,7 @@ async function gemCall(body){
   throw last||{};
 }
 async function gemAsk(text){
-  const ctx={acts:[],conf:[]},contents=gemHistory(text);
+  const ctx={acts:[],conf:[],src:[]},contents=gemHistory(text);
   for(let step=0;step<6;step++){
     const j=await gemCall({systemInstruction:{parts:[{text:gemSystem()}]},contents,tools:GEM_TOOLS,generationConfig:{temperature:0.7}});
     const cand=j.candidates&&j.candidates[0],parts=(cand&&cand.content&&cand.content.parts)||[];
@@ -1742,6 +1752,7 @@ async function gemAsk(text){
 }
 function gemMsgExtra(m,i){
   let h='';
+  if(m.src&&m.src.length)h+='<p class="aisrc">Quellen: '+m.src.map(x=>'<a href="'+esc(x.u)+'" target="_blank" rel="noopener">'+esc(x.t)+'</a>').join(' · ')+'</p>';
   if(m.acts&&m.acts.length)h+='<ul class="aiacts">'+m.acts.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul>';
   if(m.conf&&m.conf.length)h+=m.conf.map((c,j)=>c.done?'<p class="small muted aiconfd">'+(c.done==='ok'?'✓ Gelöscht':'Abgebrochen')+'</p>':'<div class="aiconf"><button class="aibtn" data-cf="'+i+'.'+j+'">'+esc(c.l)+'</button><button class="aibtn ghost" data-cfx="'+i+'.'+j+'">Nein</button></div>').join('');
   return h;
@@ -1756,7 +1767,7 @@ function gemBindConf(box){
 async function gemSend(text){
   try{
     const r=await gemAsk(text);
-    S.chat.push({r:'a',h:gemMd(r.text),g:r.text+(r.ctx.acts.length?'\n[Ausgeführt: '+r.ctx.acts.join('; ')+']':''),acts:r.ctx.acts,conf:r.ctx.conf,at:Date.now()});
+    S.chat.push({r:'a',h:gemMd(r.text),g:r.text+(r.ctx.acts.length?'\n[Ausgeführt: '+r.ctx.acts.join('; ')+']':''),acts:r.ctx.acts,conf:r.ctx.conf,src:r.ctx.src,at:Date.now()});
   }catch(e){
     const fb=aiReply(text);
     const why=e&&e.key?'Der Gemini-Schlüssel funktioniert nicht (mehr). Unter Familie kannst du ihn neu eintragen.':e&&e.net?'Keine Internetverbindung zu Gemini, ich antworte im einfachen Modus.':e&&e.status===429?'Gemini ist gerade ausgelastet (Gratis-Limit). Ich antworte im einfachen Modus, später geht es wieder.':'Gemini hat gerade nicht geantwortet, ich antworte im einfachen Modus.';
