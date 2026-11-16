@@ -463,6 +463,10 @@ input[type="date"],input[type="time"]{color-scheme:var(--scheme)}
 .camhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .camhead h3{margin:0}
 .camhead span{font-size:12px;color:var(--muted)}
+.cam:active{border-color:rgb(var(--a-rgb) / .5)}
+.cam .lens.big,.lens.big{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,rgb(var(--a-rgb) / .3),rgb(var(--a2-rgb) / .1));color:var(--accent-3);box-shadow:inset 0 0 0 1px rgb(var(--a3-rgb) / .25),0 10px 24px -10px rgb(var(--a2-rgb) / .9)}
+.lens.big svg{width:26px;height:26px}
+.camsetup{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(19,27,44,.5)}
 
 @media (hover:hover){
 .res:hover{border-color:var(--line-2)}
@@ -776,18 +780,41 @@ function statusNote(){
   return '';
 }
 
-// Kameras: öffnet die TP-Link Tapo-App (kein Livebild in der App). Ist Tapo nicht installiert, geht es zum Store.
+// Kameras: öffnet die TP-Link Tapo-App (kein Livebild in der App).
+// Tapo hat auf dem iPhone keinen offiziellen Link zum direkten Öffnen. Darum zwei Wege:
+// 1) Mit einmal eingerichtetem Kurzbefehl „Tapo“ öffnet ein Tipp die App direkt (shortcuts://run-shortcut).
+// 2) Ohne Kurzbefehl öffnet sich die Tapo-Seite im App Store, dort „Öffnen“ tippen.
 const CAMS=[['Carport','Vorne'],['Schuppen','Hinten'],['Klingel','Haustür']];
 const ICON_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5"/><circle cx="7" cy="10" r="1" fill="currentColor"/></svg>';
-function openTapo(){
+const TAPO_SC='Tapo';
+function isIOS(){const ua=navigator.userAgent||'';return /iPhone|iPad|iPod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)}
+function tapoShortcut(){return lsGet('frahm-tapo-sc')==='1'}
+function tapoLaunch(how){
   const ua=navigator.userAgent||'';
-  if(/Android/i.test(ua)){location.href='intent://#Intent;scheme=tapo;package=com.tplink.iot;S.browser_fallback_url='+encodeURIComponent('https://play.google.com/store/apps/details?id=com.tplink.iot')+';end';return}
-  const store=/iPhone|iPad|iPod|Macintosh/i.test(ua)?'https://apps.apple.com/app/id1472718009':'https://www.tapo.com/de/download/';
-  let left=false;const onHide=()=>{left=true};
-  document.addEventListener('visibilitychange',onHide,{once:true});window.addEventListener('pagehide',onHide,{once:true});
-  setTimeout(()=>{if(!left&&!document.hidden)location.href=store},1600);
-  location.href='tapo://';
+  if(/Android/i.test(ua)){location.href='intent://#Intent;package=com.tplink.iot;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url='+encodeURIComponent('https://play.google.com/store/apps/details?id=com.tplink.iot')+';end';return}
+  if(how==='sc'){location.href='shortcuts://run-shortcut?name='+encodeURIComponent(TAPO_SC);return}
+  if(isIOS()){location.href='itms-apps://apps.apple.com/app/id1472718009';return}
+  window.open('https://www.tapo.com/de/download/','_blank','noopener');
 }
+function openTapo(e){
+  const name=(e&&e.currentTarget&&e.currentTarget.dataset.camName)||'';
+  if(!isIOS()||tapoShortcut()){toast(name?'Tapo öffnet … dann „'+name+'“ antippen':'Tapo öffnet …');tapoLaunch(isIOS()?'sc':'');return}
+  const host=$('#sheetHost');
+  host.innerHTML='<div class="scrim" id="scrim"><div class="sheet camsheet" role="dialog" aria-label="Kamera öffnen">'+
+    '<div class="bhero"><span class="lens big">'+ICON_CAM+'</span><div><h2 style="font-size:21px">'+esc(name||'Kameras')+'</h2><p class="small muted" style="margin:2px 0 0">Live-Bild in der Tapo-App</p></div></div>'+
+    '<button class="btn" id="tpStore" style="width:100%">Tapo öffnen</button>'+
+    '<p class="small muted" style="margin:-4px 0 0">Es öffnet sich die Tapo-Seite im App Store. Dort auf <b style="color:var(--fg)">Öffnen</b> tippen'+(name?' und in Tapo <b style="color:var(--fg)">'+esc(name)+'</b> wählen':'')+'.</p>'+
+    '<div class="camsetup"><h3 style="margin:0 0 6px">Schneller: mit einem Tipp öffnen</h3><p class="small muted" style="margin:0 0 10px">Einmal einrichten (ca. 1 Minute), danach springt jeder Kamera-Knopf direkt in Tapo.</p>'+
+    '<ol class="steps small"><li>Unten auf <b>Kurzbefehle öffnen</b> tippen.</li><li>Oben rechts auf <b>+</b>, dann <b>Aktion hinzufügen</b>.</li><li><b>App öffnen</b> suchen und als App <b>Tapo</b> wählen.</li><li>Den Kurzbefehl oben genau <b>Tapo</b> nennen, fertig.</li><li>Zurück in Frahm: <b>Ist eingerichtet</b> tippen.</li></ol>'+
+    '<div class="row" style="margin-top:12px"><a class="btn ghost" href="shortcuts://create-shortcut" style="flex:1;text-align:center;text-decoration:none">Kurzbefehle öffnen</a><button class="btn ghost" id="tpDone" style="flex:1">Ist eingerichtet</button></div></div>'+
+    '<button class="btn ghost" id="cancel">Schließen</button></div></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',x=>{if(x.target.id==='scrim')close()});
+  $('#tpStore').onclick=()=>{close();tapoLaunch('store')};
+  $('#tpDone').onclick=()=>{lsSet('frahm-tapo-sc','1');close();toast('Super! Ab jetzt öffnet ein Tipp direkt Tapo');tapoLaunch('sc')};
+}
+function resetTapo(){lsSet('frahm-tapo-sc','');renderHome();openTapo()}
 function renderHome(){
   const el=$('#p-home');
   if(S.q){el.innerHTML=renderSearch();bindSearch(el);return}
@@ -833,9 +860,10 @@ function renderHome(){
     tile(PG.familie,ICON.user,'Wer ist zuhause?',homeSummary(),'zeiten')+
     tile(PG.einkauf,ICON.cart,'Einkaufsliste',openShop?openShop+(openShop===1?' Sache fehlt':' Sachen fehlen'):'Nichts offen')+
     '</div>';
-  if(H.cams)html+='<div class="card"><div class="camhead"><h3>Kameras</h3><span>öffnet die Tapo-App</span></div><div class="cams">'+CAMS.map(c=>'<button class="cam" data-cam aria-label="Kamera '+c[0]+' in der Tapo-App öffnen"><span class="lens">'+ICON_CAM+'</span><span><b>'+c[0]+'</b><small>'+c[1]+'</small></span></button>').join('')+'</div></div>';
+  if(H.cams)html+='<div class="card"><div class="camhead"><h3>Kameras</h3>'+(isIOS()&&tapoShortcut()?'<button class="linkbtn" id="tpReset" style="padding:0;font-size:12px">Kurzbefehl ändern</button>':'<span>über die Tapo-App</span>')+'</div><div class="cams">'+CAMS.map(c=>'<button class="cam" data-cam data-cam-name="'+c[0]+'" aria-label="Kamera '+c[0]+' in der Tapo-App öffnen"><span class="lens">'+ICON_CAM+'</span><span><b>'+c[0]+'</b><small>'+c[1]+'</small></span></button>').join('')+'</div></div>';
   el.innerHTML=html;
   el.querySelectorAll('[data-cam]').forEach(b=>b.onclick=openTapo);
+  const tr=$('#tpReset');if(tr)tr.onclick=resetTapo;
   bindGo(el);
   bindItems(el);
   const ae=$('#aiEntry');if(ae)ae.onclick=()=>openChat();
