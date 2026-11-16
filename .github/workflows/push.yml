@@ -29,6 +29,7 @@ jobs:
         working-directory: .github/push
         env:
           PUSH_GEHEIM: ${{ secrets.PUSH_GEHEIM }}
+          DHL_KEY: ${{ secrets.DHL_KEY }}
         run: node send.mjs
       # GitHub pausiert Zeitpläne nach 60 Tagen ohne Änderungen im Repo; einmal im Monat neu einschalten.
       - name: Zeitplan wach halten

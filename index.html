@@ -418,6 +418,36 @@ input[type="date"],input[type="time"]{color-scheme:dark}
 .addtask:hover{border-color:var(--accent);background:var(--accent-soft)}
 .cal button:hover{background:var(--surface-2)}
 }
+/* ---------- Pakete ---------- */
+#shopPane,#pkgPane,#pkgBody{display:flex;flex-direction:column;gap:12px}
+#pkgBody h3{margin:6px 0 0}
+#pkgBody .card h3{margin:0 0 8px}
+.pkgs{display:flex;flex-direction:column;gap:8px}
+.pkg{display:flex;flex-direction:column;gap:10px;background:var(--grad-soft),var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 10px 12px 12px;box-shadow:var(--sh-1)}
+.pkg.hl{border-color:rgba(255,181,71,.45);background:linear-gradient(135deg,rgba(255,181,71,.13),rgba(255,181,71,.02)),var(--surface)}
+.pkg.got{background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(61,139,255,.04)),var(--surface);border-color:rgba(61,139,255,.35)}
+.pkg.done{background:rgba(12,18,32,.5);border-color:transparent;box-shadow:none;opacity:.75}
+.pkg .top{display:flex;align-items:center;gap:12px}
+.pkg .open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;text-align:left;color:inherit}
+.pkg .txt{flex:1;min-width:0}
+.pkg .txt b{display:block;font-weight:600;overflow-wrap:anywhere}
+.pkg .txt span{display:block;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pkg .txt .pill{display:inline-block;margin-top:5px}
+.pkg .auto{font-size:13px;color:var(--fg);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.pkg .auto small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.pkg.done .txt b{text-decoration:line-through;color:var(--muted)}
+.pkg.done .check{background:var(--grad);border-color:transparent;color:var(--accent-ink)}
+.pkg .acts{display:flex;gap:8px;flex-wrap:wrap;padding-left:52px}
+.btn.sm{padding:8px 12px;font-size:13.5px;border-radius:12px;box-shadow:none}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.sm.on{background:var(--sun-soft);color:var(--sun);box-shadow:inset 0 0 0 1px rgba(255,181,71,.4)}
+.cr{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font:800 11.5px/1 var(--display);letter-spacing:-.01em;background:var(--cb);color:var(--cf);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.cr.lg{width:44px;height:44px}
+.chips.carr .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px 6px 6px}
+.chips.carr .cr{width:24px;height:24px;border-radius:7px;font-size:8.5px}
+.pkghint{font-size:13px;color:var(--muted);line-height:1.5}
+.pkghint b{color:var(--fg)}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -432,7 +462,7 @@ input[type="date"],input[type="time"]{color-scheme:dark}
     </div>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Suchen: Termine, Aufgaben, Müll …" autocomplete="off" enterkeyhint="search" aria-label="Suchen">
+      <input id="q" type="search" placeholder="Suchen: Termine, Aufgaben, Pakete …" autocomplete="off" enterkeyhint="search" aria-label="Suchen">
       <button class="clear" id="qclear" hidden aria-label="Suche leeren">✕</button>
     </div>
   </header>
@@ -443,7 +473,7 @@ input[type="date"],input[type="time"]{color-scheme:dark}
       <section class="page" id="p-home" aria-label="Start"></section>
       <section class="page" id="p-bella" aria-label="Bella"></section>
       <section class="page" id="p-familie" aria-label="Familie"></section>
-      <section class="page" id="p-einkauf" aria-label="Einkaufsliste"></section>
+      <section class="page" id="p-einkauf" aria-label="Einkauf und Pakete"></section>
     </div>
     <div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </div>
@@ -498,7 +528,7 @@ const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samst
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const HISTORY=7;
 
-const S={chat:null,chatTyping:false,wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
+const S={chat:null,chatTyping:false,wx:null,wxAt:0,wxErr:false,push:'off',pushCfg:null,bOffset:0,bella:{},sched:{},famTab:'familie',shopTab:'einkauf',pkgs:[],page:2,offset:0,agDays:60,agObs:null,events:[],bdays:[],bdaysLoaded:false,calTab:'termine',calMonth:null,calSel:'',done:{},muell:null,shop:[],custom:[],editTasks:false,db:null,canWrite:null,readOnlyReason:'',loading:true,q:'',editMuell:false,
   name:lsGet('frahm-name')||''};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -538,6 +568,7 @@ const ICON={
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
   cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9z"/><path d="M19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z" opacity=".75"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8M7.5 5.5l9 5"/></svg>',
   cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.8L21 8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'
 };
 
@@ -655,6 +686,9 @@ function renderHome(){
   if(open.length||bOpen.length){
     html+='<div class="card"><h3>Noch offen heute</h3><ul class="open-list">'+bOpen.map(x=>'<li><span>'+esc(x.t)+'</span><span class="muted small">'+(x.slot==='morgens'?'Morgens':'Abends')+'</span></li>').join('')+open.map(x=>'<li><span>'+esc(x.t)+'</span><span class="muted small">'+(x.due?(isLate(t,x)?'<b style="color:var(--danger,#d64545)">Frist '+x.due+' vorbei</b>':'bis '+x.due+' Uhr'):SLOTS.find(s=>s[0]===x.slot)[1])+'</span></li>').join('')+'</ul></div>';
   }
+  const pk=S.pkgs.filter(p=>pkgState(p)!=='da'),pkToday=pk.filter(p=>pkgState(p)==='heute'),pkGot=pk.filter(p=>pkgState(p)==='zugestellt');
+  if(pkToday.length||pkGot.length)html+='<button class="res" data-go="'+PG.einkauf+'" data-tab="pakete" style="border-color:rgba(255,181,71,.45)"><div><b>📦 '+(pkGot.length?(pkGot.length===1?'Ein Paket wurde zugestellt':pkGot.length+' Pakete wurden zugestellt'):(pkToday.length===1?'Heute kommt ein Paket':'Heute kommen '+pkToday.length+' Pakete'))+'</b><small>'+esc((pkGot.length?pkGot:pkToday).map(pkgTitle).join(', '))+'</small></div><span class="tag">Pakete</span></button>';
+  else if(pk.length)html+='<button class="res" data-go="'+PG.einkauf+'" data-tab="pakete"><div><b>📦 '+(pk.length===1?'1 Paket unterwegs':pk.length+' Pakete unterwegs')+'</b><small>'+esc(pk.slice(0,3).map(pkgTitle).join(', '))+'</small></div><span class="tag">Pakete</span></button>';
   if(rk.length)html+='<button class="res" data-go="'+PG.familie+'" data-tab="familie"><div><b>🏆 '+esc(rk[0][0])+' führt diese Woche</b><small>'+rk[0][1]+(rk[0][1]===1?' Punkt':' Punkte')+' · Rangliste ansehen</small></div><span class="tag">Punkte</span></button>';
   const nx=up[0];
   html+='<div class="tiles">'+
@@ -681,6 +715,8 @@ function searchResults(qq){
   allTasks().forEach(x=>{if((x.t+' '+x.k+' '+x.slot+' '+daysLabel(x)+' '+(x.who||'')).toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:0,title:x.t,sub:SLOTS.find(s=>s[0]===x.slot)[1]+(x.days?' · '+daysLabel(x):'')+(x.once?' · einmalig am '+fmtShort(parse(x.once)):'')+(x.due?' · bis '+x.due+' Uhr':'')+(x.who?' · für '+x.who:'')+(d?' · erledigt von '+d.name:''),tag:'Aufgabe'})}});
   BELLA_TASKS.forEach(x=>{if((x.t+' '+x.slot+' bella hund').toLowerCase().includes(q)){const d=isDone(t,x);res.push({go:PG.bella,title:x.t,sub:(x.slot==='morgens'?'Morgens':'Abends')+(d?' · erledigt von '+d.name:' · noch offen'),tag:'Bella'})}});
   S.shop.forEach(x=>{if(String(x.text).toLowerCase().includes(q))res.push({go:PG.einkauf,title:x.text,sub:(x.done?'Gekauft':'Auf der Einkaufsliste')+(x.by?' · von '+x.by:''),tag:'Einkauf'})});
+  S.pkgs.forEach(p=>{if((pkgTitle(p)+' '+carrierOf(p).n+' '+(p.nr||'')+' paket sendung').toLowerCase().includes(q)){const st=pkgState(p);res.push({go:PG.einkauf,tab:'pakete',title:pkgTitle(p),sub:carrierOf(p).n+' · '+(st==='da'?'Angekommen':st==='heute'?'Kommt heute':st==='zugestellt'?'Zugestellt':'Unterwegs'),tag:'Paket'})}});
+  if('pakete paket sendungsverfolgung'.includes(q))res.push({go:PG.einkauf,tab:'pakete',title:'Pakete',sub:S.pkgs.filter(p=>pkgState(p)!=='da').length+' unterwegs',tag:'Pakete'});
   if('einkaufsliste einkaufen'.includes(q))res.push({go:PG.einkauf,title:'Einkaufsliste',sub:S.shop.filter(x=>!x.done).length+' offen',tag:'Einkauf'});
   S.events.forEach(e=>{if((e.title+' '+(e.place||'')+' '+(e.persons||[]).join(' ')+' '+(e.desc||'')+' termin kalender').toLowerCase().includes(q)){const d=parse(e.date);res.push({go:1,tab:'termine',day:e.date,title:e.title,sub:fmtShort(d)+(evMulti(e)?' – '+fmtShort(parse(evEnd(e))):'')+(d.getFullYear()!==t.getFullYear()?' '+d.getFullYear():'')+(e.time?' · '+e.time+' Uhr':'')+(e.place?' · '+e.place:''),tag:'Termin'})}});
   bdaysAll().forEach(b=>{if((b.name+' geburtstag').toLowerCase().includes(q))res.push({go:1,tab:'geburtstage',title:b.name,sub:'Geburtstag am '+bdLabel(b),tag:'Geburtstag'})});
@@ -698,6 +734,7 @@ function renderSearch(){
 function bindSearch(el){bindGo(el);el.querySelectorAll('[data-chat-q]').forEach(b=>b.addEventListener('click',()=>{const q=b.dataset.chatQ;clearSearch();openChat(q)}))}
 function bindGo(el){el.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
   if(+b.dataset.go===PG.familie){if(b.dataset.tab){S.famTab=b.dataset.tab;renderFamily()}go(PG.familie);return}
+  if(+b.dataset.go===PG.einkauf){S.shopTab=b.dataset.tab||'einkauf';renderShop();go(PG.einkauf);return}
   if(b.dataset.tab)S.calTab=b.dataset.tab;
   if(b.dataset.day){S.calSel=b.dataset.day;const d=parse(b.dataset.day);S.calMonth=new Date(d.getFullYear(),d.getMonth(),1)}
   if(b.dataset.tab||b.dataset.day)renderCal();
@@ -1487,9 +1524,15 @@ async function pushInit(){
 function renderShop(){
   const el=$('#p-einkauf');
   if(!$('#shopForm')){
-    el.innerHTML='<h2>Einkaufsliste</h2><form class="shop-add" id="shopForm"><input id="shopIn" maxlength="60" placeholder="Was fehlt? z. B. Milch" autocomplete="off" aria-label="Neuer Eintrag"><button class="btn" type="submit">Dazu</button></form><div id="shopBody"></div>';
+    el.innerHTML='<h2 id="shopH">Einkaufsliste</h2><div class="seg" role="group" aria-label="Bereich"><button data-st="einkauf">Einkauf</button><button data-st="pakete">Pakete</button></div><div id="shopPane"><form class="shop-add" id="shopForm"><input id="shopIn" maxlength="60" placeholder="Was fehlt? z. B. Milch" autocomplete="off" aria-label="Neuer Eintrag"><button class="btn" type="submit">Dazu</button></form><div id="shopBody"></div></div><div id="pkgPane"><form class="shop-add" id="pkgForm"><input id="pkgIn" placeholder="Link oder Sendungsnummer einfügen" autocomplete="off" autocapitalize="off" aria-label="Link oder Sendungsnummer"><button class="btn" type="submit">Dazu</button></form><div id="pkgBody"></div></div>';
     $('#shopForm').addEventListener('submit',addItem);
+    $('#pkgForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#pkgIn').value.trim();if(!v){$('#pkgIn').focus();return}if(!S.db)return;openPkgSheet(null,v)});
+    el.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{S.shopTab=b.dataset.st;renderShop()}));
   }
+  el.querySelectorAll('[data-st]').forEach(b=>b.setAttribute('aria-pressed',S.shopTab===b.dataset.st));
+  $('#shopH').textContent=S.shopTab==='pakete'?'Pakete':'Einkaufsliste';
+  $('#shopPane').hidden=S.shopTab==='pakete';$('#pkgPane').hidden=S.shopTab!=='pakete';
+  renderPkgs();
   $('#shopIn').disabled=S.canWrite===false;
   const open=S.shop.filter(x=>!x.done).sort((a,b)=>(a.at||0)-(b.at||0)),done=S.shop.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
   const row=x=>'<div class="item'+(x.done?' done':'')+'"><button class="check" data-s="'+esc(x.id)+'" aria-label="'+esc(x.text)+(x.done?' wieder auf die Liste':' gekauft')+'" '+(S.canWrite?'':'disabled')+'>'+(x.done?ICON.check:'')+'</button><div class="txt"><b>'+esc(x.text)+'</b><span>'+(x.done?'Gekauft'+(x.doneBy?' von '+esc(x.doneBy):''):(x.by?'Eingetragen von '+esc(x.by):'Eingetragen'))+'</span></div>'+(S.canWrite?'<button class="del" data-sd="'+esc(x.id)+'" aria-label="'+esc(x.text)+' löschen">✕</button>':'')+'</div>';
@@ -1501,6 +1544,149 @@ function renderShop(){
   body.querySelectorAll('[data-s]').forEach(b=>b.addEventListener('click',()=>toggleItem(b.dataset.s)));
   body.querySelectorAll('[data-sd]').forEach(b=>b.addEventListener('click',()=>deleteItem(b.dataset.sd)));
   const c=$('#shopClear');if(c)c.onclick=clearBought;
+}
+
+/* ---------- Pakete ----------
+   Firestore "packages": {raw,url,nr,carrier,label,for,by,at,status,statusAt,statusBy,receivedBy,receivedAt,autoText,autoAt}
+   status: unterwegs | heute (kommt heute) | zugestellt (laut Paketdienst) | da (von der Familie angenommen)
+   autoText/status "heute"/"zugestellt" schreibt bei DHL auch der Push-Dienst (.github/push/send.mjs), wenn DHL_KEY gesetzt ist. */
+const CARRIERS={
+  dhl:{n:'DHL',ab:'DHL',bg:'#FFCC00',fg:'#D40511',url:n=>'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode='+encodeURIComponent(n)},
+  amazon:{n:'Amazon',ab:'a',bg:'#FF9900',fg:'#131A22',url:n=>'https://www.amazon.de/gp/css/order-history'},
+  hermes:{n:'Hermes',ab:'H',bg:'#0091CD',fg:'#FFFFFF',url:n=>'https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#'+encodeURIComponent(n)},
+  dpd:{n:'DPD',ab:'DPD',bg:'#DC0032',fg:'#FFFFFF',url:n=>'https://tracking.dpd.de/status/de_DE/parcel/'+encodeURIComponent(n)},
+  gls:{n:'GLS',ab:'GLS',bg:'#F8D400',fg:'#061AB1',url:n=>'https://gls-group.com/DE/de/paketverfolgung?match='+encodeURIComponent(n)},
+  ups:{n:'UPS',ab:'UPS',bg:'#FFB500',fg:'#351C15',url:n=>'https://www.ups.com/track?loc=de_DE&tracknum='+encodeURIComponent(n)},
+  fedex:{n:'FedEx',ab:'FX',bg:'#4D148C',fg:'#FFFFFF',url:n=>'https://www.fedex.com/fedextrack/?trknbr='+encodeURIComponent(n)},
+  other:{n:'Anderer',ab:'📦',bg:'#1A2438',fg:'#EAF0FB',url:n=>'https://parcelsapp.com/de/tracking/'+encodeURIComponent(n)}
+};
+function carrierOf(p){return CARRIERS[p&&p.carrier]||CARRIERS.other}
+function crBadge(c,cls){const x=CARRIERS[c]||CARRIERS.other;return '<span class="cr'+(cls?' '+cls:'')+'" style="--cb:'+x.bg+';--cf:'+x.fg+'" aria-hidden="true">'+x.ab+'</span>'}
+/* Sendungsnummer -> Paketdienst. Nicht immer eindeutig (z. B. 14 Ziffern: DPD oder Hermes), darum kann man es im Formular ändern. */
+function guessCarrier(n){
+  if(/^TBA\d{9,}$/.test(n))return 'amazon';
+  if(/^1Z[0-9A-Z]{16}$/.test(n))return 'ups';
+  if(/^(JJD|JVGL)[0-9A-Z]+$/.test(n)||/^3S[0-9A-Z]{8,}$/.test(n)||/^[A-Z]{2}\d{9}DE$/.test(n)||/^\d{12}$/.test(n)||/^\d{20}$/.test(n))return 'dhl';
+  if(/^0\d{13}$/.test(n)||/^\d{27,28}$/.test(n))return 'dpd';
+  if(/^H\d{10,20}$/.test(n)||/^\d{14}$/.test(n)||/^\d{16}$/.test(n))return 'hermes';
+  if(/^\d{11}$/.test(n))return 'gls';
+  return 'other';
+}
+function parsePkg(raw){
+  raw=String(raw||'').trim();let url='',nr='',carrier='',label='';
+  const m=raw.match(/https?:\/\/[^\s<>"]+/i);
+  if(m){
+    url=m[0].replace(/[),.;!]+$/,'');
+    let u=null;try{u=new URL(url)}catch(e){}
+    if(u){
+      const h=u.hostname.toLowerCase();
+      carrier=/(^|\.)(amazon|amzn)\./.test(h)||/amzn\.to$/.test(h)?'amazon':/dhl\.|deutschepost|deutsche-post/.test(h)?'dhl':/dpd\./.test(h)?'dpd':/hermes/.test(h)?'hermes':/gls/.test(h)?'gls':/ups\.com$/.test(h)?'ups':/fedex\./.test(h)?'fedex':'';
+      const ps=u.searchParams;
+      for(const k of ['piececode','idc','tracking-id','trackingId','trackingNumber','trackingnumber','tracknum','trknbr','parcelNumber','parcelno','match','shipmentId','sendungsnummer','tracking','query']){const v=(ps.get(k)||'').replace(/\s+/g,'');if(/^[A-Za-z0-9]{8,35}$/.test(v)&&/\d{4}/.test(v)){nr=v;break}}
+      if(!nr&&carrier!=='amazon'){const seg=(u.pathname+'/'+u.hash.slice(1)).split(/[\/#?&=]/).reverse().find(x=>/^[A-Za-z0-9]{10,35}$/.test(x)&&/\d{6}/.test(x));if(seg)nr=seg}
+    }
+    label=raw.replace(m[0],'').trim().slice(0,60);
+  }else{
+    const c=raw.replace(/[\s-]+/g,'');
+    if(/^[A-Za-z0-9]{8,35}$/.test(c)&&/\d{5}/.test(c))nr=c;else label=raw.slice(0,60);
+  }
+  nr=nr.toUpperCase();
+  if(!carrier)carrier=nr?guessCarrier(nr):(/amazon/i.test(raw)?'amazon':/dhl/i.test(raw)?'dhl':/hermes/i.test(raw)?'hermes':/dpd/i.test(raw)?'dpd':/gls/i.test(raw)?'gls':'other');
+  return {url,nr,carrier,label};
+}
+function trackUrl(p){if(p.url)return p.url;const c=carrierOf(p);if(p.nr)return c.url(p.nr);return p.carrier==='amazon'?c.url(''):''}
+/* "Kommt heute" gilt nur für den Tag, an dem es gesetzt wurde. */
+function pkgState(p){
+  if(p.status==='da')return 'da';
+  if(p.status==='zugestellt')return 'zugestellt';
+  if(p.status==='heute'&&p.statusAt&&key(new Date(p.statusAt))===key(today()))return 'heute';
+  return 'unterwegs';
+}
+function ago(ts){const m=Math.round((Date.now()-ts)/6e4);if(m<1)return 'gerade eben';if(m<60)return 'vor '+m+' Min.';const d=new Date(ts),n=diffDays(d,today());return (n===0?'heute':n===1?'gestern':fmtShort(d))+' '+hhmm(ts)}
+function pkgTitle(p){return (p.label||carrierOf(p).n+'-Paket')+(p.for?' für '+p.for:'')}
+function pkgCard(p){
+  const st=pkgState(p),c=carrierOf(p),link=trackUrl(p),w=S.canWrite;
+  const sub=[c.n+(p.nr?' · '+p.nr:''),p.by?'eingetragen von '+p.by:''].filter(Boolean).join(' · ');
+  let pill='';
+  if(st==='heute')pill='<span class="pill">Kommt heute'+(p.statusBy&&p.statusBy!==p.by?' · laut '+esc(p.statusBy):'')+'</span>';
+  else if(st==='zugestellt')pill='<span class="pill home">Laut '+esc(p.statusBy||c.n)+' zugestellt · '+ago(p.statusAt||Date.now())+'</span>';
+  else if(st==='da')pill='';
+  const doneTxt=st==='da'?'<span>Angenommen'+(p.receivedBy?' von '+esc(p.receivedBy):'')+(p.receivedAt?' · '+ago(p.receivedAt):'')+'</span>':'';
+  let h='<div class="pkg'+(st==='heute'?' hl':st==='zugestellt'?' got':st==='da'?' done':'')+'"><div class="top"><button class="open" data-pe="'+esc(p.id)+'" aria-label="'+esc(pkgTitle(p))+' bearbeiten">'+crBadge(p.carrier,'lg')+'<span class="txt"><b>'+esc(pkgTitle(p))+'</b><span>'+esc(sub)+'</span>'+doneTxt+pill+'</span></button><button class="check" data-pk="'+esc(p.id)+'" aria-label="'+esc(pkgTitle(p))+(st==='da'?' doch noch nicht da':' ist angekommen')+'" '+(w?'':'disabled')+'>'+(st==='da'?ICON.check:'')+'</button></div>';
+  if(st!=='da'&&p.autoText)h+='<div class="auto">'+esc(p.autoText)+'<small>Stand bei '+esc(c.n)+': '+ago(p.autoAt||Date.now())+'</small></div>';
+  if(st!=='da')h+='<div class="acts">'+(link?'<a class="btn ghost sm" href="'+esc(link)+'" target="_blank" rel="noopener">Verfolgen ↗</a>':'')+(w&&st!=='zugestellt'?'<button class="btn ghost sm'+(st==='heute'?' on':'')+'" data-ph="'+esc(p.id)+'">'+(st==='heute'?'✓ Kommt heute':'Kommt heute')+'</button>':'')+'</div>';
+  return h+'</div>';
+}
+function renderPkgs(){
+  const el=$('#pkgBody');if(!el)return;
+  $('#pkgIn').disabled=S.canWrite===false;
+  const order={heute:0,zugestellt:1,unterwegs:2};
+  const open=S.pkgs.filter(p=>pkgState(p)!=='da').sort((a,b)=>order[pkgState(a)]-order[pkgState(b)]||(b.at||0)-(a.at||0));
+  const got=S.pkgs.filter(p=>pkgState(p)==='da').sort((a,b)=>(b.receivedAt||0)-(a.receivedAt||0));
+  let html=statusNote();
+  if(!S.pkgs.length&&!S.loading)html+='<div class="card"><b>Keine Pakete unterwegs</b><p class="small muted" style="margin:6px 0 0">Den Link aus der Versand-Mail oder die Sendungsnummer oben einfügen. Der Paketdienst wird erkannt, und alle sehen, für wen das Paket ist.</p></div>';
+  if(open.length)html+='<div class="pkgs">'+open.map(pkgCard).join('')+'</div>';
+  if(got.length)html+='<h3>Angekommen ('+got.length+')</h3><div class="pkgs">'+got.slice(0,15).map(pkgCard).join('')+'</div>'+(S.canWrite?'<div class="row"><button class="btn ghost" id="pkgClear">Angekommene entfernen</button></div>':'');
+  html+='<div class="card pkghint"><h3>Benachrichtigungen</h3>Wer auf <b>Kommt heute</b> tippt, schickt dem Empfänger eine Nachricht (oder allen, wenn das Paket für alle ist). Hakt jemand ein Paket als angekommen ab, bekommt der Empfänger auch Bescheid.'+(S.pkgs.some(p=>p.autoAt)?' Bei DHL prüft die App den Status selbst und meldet, wenn das Paket im Zustellfahrzeug ist.':' Bei DHL kann die App den Status auch selbst abfragen, sobald ein DHL-Schlüssel eingerichtet ist.')+'</div>';
+  el.innerHTML=html;
+  el.querySelectorAll('[data-pe]').forEach(b=>b.addEventListener('click',()=>{const p=S.pkgs.find(x=>x.id===b.dataset.pe);if(p)openPkgSheet(p)}));
+  el.querySelectorAll('[data-pk]').forEach(b=>b.addEventListener('click',()=>togglePkg(b.dataset.pk)));
+  el.querySelectorAll('[data-ph]').forEach(b=>b.addEventListener('click',()=>togglePkgToday(b.dataset.ph)));
+  const c=$('#pkgClear');if(c)c.onclick=clearPkgs;
+}
+function openPkgSheet(p,raw){
+  const host=$('#sheetHost'),isNew=!p;
+  const d=isNew?parsePkg(raw):{nr:p.nr||'',carrier:p.carrier||'other',label:p.label||'',url:p.url||''};
+  let carrier=d.carrier,who=isNew?(S.name||''):(p.for||'');
+  const people=FAMILY.filter(x=>!x.dog);
+  host.innerHTML='<div class="scrim" id="scrim"><form class="sheet" id="pkgSheet" aria-label="Paket"><h2 style="font-size:20px">'+(isNew?'Neues Paket':'Paket bearbeiten')+'</h2>'+
+    '<div><h3>Paketdienst</h3><div class="chips carr" id="pkgCarr">'+Object.keys(CARRIERS).map(k=>'<button type="button" class="chip" data-c="'+k+'" aria-pressed="'+(k===carrier)+'">'+crBadge(k)+CARRIERS[k].n+'</button>').join('')+'</div>'+(isNew&&d.nr&&d.carrier!=='other'?'<p class="small muted" style="margin:8px 0 0">Automatisch erkannt. Wenn es nicht stimmt, einfach antippen.</p>':'')+'</div>'+
+    '<label class="f">Sendungsnummer<input id="pkgNr" maxlength="40" autocomplete="off" autocapitalize="characters" value="'+esc(d.nr)+'" placeholder="'+(d.url?'Steckt im Link':'optional')+'"></label>'+
+    '<label class="f">Was ist drin? (optional)<input id="pkgLabel" maxlength="60" value="'+esc(d.label)+'" placeholder="z. B. Schuhe, Druckerpatronen"></label>'+
+    '<div><h3>Für wen?</h3><div class="chips" id="pkgWho"><button type="button" class="chip" data-w="" aria-pressed="'+(who==='')+'">Für alle</button>'+people.map(x=>'<button type="button" class="chip" data-w="'+x.n+'" aria-pressed="'+(who===x.n)+'">'+x.n+'</button>').join('')+'</div></div>'+
+    (d.url?'<p class="small muted" style="margin:0;overflow-wrap:anywhere">Link: '+esc(d.url.length>70?d.url.slice(0,70)+'…':d.url)+'</p>':'')+
+    (d.carrier==='amazon'||carrier==='amazon'?'<p class="small muted" style="margin:0">Amazon-Links öffnen sich nur im Amazon-Konto, mit dem bestellt wurde. Steht in der Versand-Mail eine DHL-, Hermes- oder DPD-Nummer, lieber die eintragen.</p>':'')+
+    '<div class="row"><button class="btn" type="submit" style="flex:1">'+(isNew?'Eintragen':'Speichern')+'</button><button class="btn ghost" type="button" id="cancel">Abbrechen</button></div>'+
+    (isNew?'':'<button class="btn ghost" type="button" id="pkgDel" style="color:var(--danger)">Paket löschen</button>')+
+    '</form></div>';
+  const close=()=>{host.innerHTML=''};
+  $('#cancel').onclick=close;
+  $('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
+  host.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('click',()=>{carrier=b.dataset.c;host.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+  host.querySelectorAll('[data-w]').forEach(b=>b.addEventListener('click',()=>{who=b.dataset.w;host.querySelectorAll('[data-w]').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+  $('#pkgNr').addEventListener('input',e=>{const n=e.target.value.replace(/[\s-]+/g,'').toUpperCase();if(isNew&&!d.url&&n.length>=8){const g=guessCarrier(n);if(g!=='other'){carrier=g;host.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===g))}}});
+  const del=$('#pkgDel');if(del)del.onclick=async()=>{close();try{await S.db.collection('packages').doc(p.id).delete();toast('Paket gelöscht')}catch(err){handleWriteError(err)}};
+  $('#pkgSheet').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const nr=$('#pkgNr').value.replace(/[\s-]+/g,'').toUpperCase().slice(0,40),label=$('#pkgLabel').value.trim().slice(0,60);
+    if(!nr&&!d.url&&!label&&carrier==='other'){$('#pkgNr').focus();return}
+    close();
+    try{
+      if(isNew){
+        await S.db.collection('packages').add({raw:String(raw).slice(0,500),url:d.url,nr,carrier,label,for:who,by:S.name||'',at:Date.now(),status:'unterwegs',statusAt:Date.now(),statusBy:S.name||''});
+        const inp=$('#pkgIn');if(inp)inp.value='';
+        toast('Paket eingetragen');
+      }else{
+        const ch={nr,carrier,label,for:who};
+        if(nr!==(p.nr||'')||carrier!==p.carrier){ch.autoText='';ch.autoAt=0}
+        await S.db.collection('packages').doc(p.id).update(ch);toast('Gespeichert');
+      }
+    }catch(err){handleWriteError(err)}
+  });
+}
+async function togglePkg(id){
+  const p=S.pkgs.find(x=>x.id===id);if(!p)return;
+  const da=pkgState(p)==='da';
+  try{await S.db.collection('packages').doc(id).update(da?{status:'unterwegs',statusAt:Date.now(),statusBy:S.name||'',receivedBy:'',receivedAt:0}:{status:'da',receivedBy:S.name||'',receivedAt:Date.now()});toast(da?'Wieder unterwegs':'Paket ist da'+(p.for&&p.for!==S.name?', '+p.for+' bekommt Bescheid':''))}catch(e){handleWriteError(e)}
+}
+async function togglePkgToday(id){
+  const p=S.pkgs.find(x=>x.id===id);if(!p)return;
+  const on=pkgState(p)==='heute';
+  try{await S.db.collection('packages').doc(id).update({status:on?'unterwegs':'heute',statusAt:Date.now(),statusBy:S.name||''});toast(on?'Zurückgesetzt':(p.for&&p.for!==S.name?p.for+' bekommt Bescheid':'Alle bekommen Bescheid'))}catch(e){handleWriteError(e)}
+}
+async function clearPkgs(){
+  const ids=S.pkgs.filter(p=>pkgState(p)==='da').map(p=>p.id);
+  try{for(const id of ids)await S.db.collection('packages').doc(id).delete();toast(ids.length===1?'1 Paket entfernt':ids.length+' Pakete entfernt')}catch(e){handleWriteError(e)}
 }
 
 /* ---------- Actions ---------- */
@@ -1642,6 +1828,9 @@ function connect(){
   },fail));
   unsubs.push(base.collection('shopping').onSnapshot(snap=>{
     S.shop=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(x=>x.text);renderShop();renderHome();
+  },fail));
+  unsubs.push(base.collection('packages').onSnapshot(snap=>{
+    S.pkgs=snap.docs.map(d=>Object.assign({id:d.id},d.data()));renderShop();renderHome();
   },fail));
   unsubs.push(base.collection('tasks').onSnapshot(snap=>{
     S.custom=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(c=>c.t&&SLOTS.some(x=>x[0]===c.slot)).sort((a,b)=>(a.at||0)-(b.at||0));renderTasks();renderHome();

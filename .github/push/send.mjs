@@ -2,12 +2,15 @@
 // Läuft als GitHub Action (.github/workflows/push.yml) mit TZ=Europe/Berlin.
 // Secret PUSH_GEHEIM = "<Familien-Code>|<VAPID Private Key>", erzeugt in der App unter Familie > Push-Nachrichten.
 // Der passende öffentliche Schlüssel liegt in config/push. DRY=1 zeigt nur an, was gesendet würde.
+// Optional: Secret DHL_KEY = kostenloser API-Schlüssel von developer.dhl.com ("Shipment Tracking - Unified").
+// Dann fragt der Dienst den Status von DHL-Paketen selbst ab und meldet "im Zustellfahrzeug" und "zugestellt".
 import webpush from 'web-push';
 
 const API_KEY = 'AIzaSyA40ZFUpG5i5G8337ItJ4yxnHyGPW4iKgw';
 const PROJECT = 'frahm-a5202';
 const APP_URL = 'https://jannikfrahm1-design.github.io/Frahm/';
 const DRY = !!process.env.DRY;
+const DHL_KEY = String(process.env.DHL_KEY || '').trim();
 
 const [CODE, VAPID_PRIVATE] = String(process.env.PUSH_GEHEIM || '').split('|').map(s => s.trim());
 if (!CODE || !VAPID_PRIVATE) { console.log('Secret PUSH_GEHEIM fehlt, nichts zu tun.'); process.exit(0); }
@@ -54,6 +57,22 @@ async function claim(id, date) {
   if (r.ok) return true;
   if (r.status === 409) return false;
   throw new Error(`pushlog ${id}: ${r.status} ${await r.text()}`);
+}
+function enc(v) {
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (v == null) return { nullValue: null };
+  return { stringValue: String(v) };
+}
+// Ändert nur die genannten Felder eines bestehenden Dokuments.
+async function patch(path, data) {
+  if (DRY) { console.log('[DRY] ändern', path, JSON.stringify(data)); return; }
+  const mask = Object.keys(data).map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k)).join('&');
+  const fields = {}; for (const k in data) fields[k] = enc(data[k]);
+  const r = await fetch(`${BASE}/${path}?${mask}&currentDocument.exists=true&key=${API_KEY}`, {
+    method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields })
+  });
+  if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`);
 }
 async function del(path) { if (!DRY) await fetch(`${BASE}/${path}?key=${API_KEY}`, { method: 'DELETE' }); }
 
@@ -102,20 +121,73 @@ function nextPickup(muell, bin, from) {
 /* ---------- Daten, sparsam geladen ----------
    Firestore erlaubt im kostenlosen Tarif 50.000 Lesezugriffe pro Tag, die App der Familie braucht davon auch etwas.
    Termine, Aufgaben, Müll und Geräte höchstens alle 10 Minuten, Geburtstage (ändern sich selten) nur einmal pro Lauf. */
-let cache = null, cacheAt = 0, bdays = null;
+let cache = null, cacheAt = 0, bdays = null, pkgs = null, pkgsAt = 0;
 async function data() {
-  if (cache && Date.now() - cacheAt < 10 * 6e4) return cache;
-  if (!bdays) bdays = await list('birthdays');
-  const [tasks, events, muellDoc, subs] = await Promise.all([list('tasks'), list('events'), get('config/muell'), list('push')]);
-  cache = { tasks, events, bdays, muellDoc, subs }; cacheAt = Date.now();
-  return cache;
+  if (!cache || Date.now() - cacheAt >= 10 * 6e4) {
+    if (!bdays) bdays = await list('birthdays');
+    const [tasks, events, muellDoc, subs] = await Promise.all([list('tasks'), list('events'), get('config/muell'), list('push')]);
+    cache = { tasks, events, bdays, muellDoc, subs }; cacheAt = Date.now();
+  }
+  // Pakete alle 5 Minuten, damit "Kommt heute" schnell ankommt
+  if (!pkgs || Date.now() - pkgsAt >= 5 * 6e4) { pkgs = await list('packages'); pkgsAt = Date.now(); }
+  return Object.assign({}, cache, { pkgs });
+}
+
+/* ---------- Pakete: DHL-Status abfragen ----------
+   Kostenloser DHL-Schlüssel erlaubt 250 Abfragen am Tag. Darum nur 7 bis 21 Uhr, jedes offene Paket
+   höchstens alle 30 Minuten (bei vielen Paketen seltener), und nie mehr als 40 Abfragen pro Lauf. */
+const CARRIER_NAMES = { dhl: 'DHL', amazon: 'Amazon', hermes: 'Hermes', dpd: 'DPD', gls: 'GLS', ups: 'UPS', fedex: 'FedEx' };
+const dhlLast = new Map(); let dhlCalls = 0, dhlStop = false;
+async function pollDhl(list) {
+  if (!DHL_KEY || dhlStop || now.getHours() < 7 || now.getHours() >= 21) return false;
+  const open = list.filter(p => p.carrier === 'dhl' && p.nr && p.status !== 'da' && p.status !== 'zugestellt' && Date.now() - (p.at || 0) < 30 * 864e5);
+  if (!open.length) return false;
+  const every = Math.max(30, open.length * 7) * 6e4;
+  let changed = false;
+  for (const p of open) {
+    if (Date.now() - Math.max(p.autoAt || 0, dhlLast.get(p.id) || 0) < every) continue;
+    if (dhlCalls >= 40) break;
+    dhlLast.set(p.id, Date.now()); dhlCalls++;
+    let r;
+    try { r = await fetch(`https://api-eu.dhl.com/track/shipments?trackingNumber=${encodeURIComponent(p.nr)}&language=de`, { headers: { 'DHL-API-Key': DHL_KEY, accept: 'application/json' } }); }
+    catch (err) { console.log('DHL nicht erreichbar:', err.message); break; }
+    if (r.status === 429) { console.log('DHL: Tageslimit erreicht'); dhlStop = true; break; }
+    if (r.status === 401 || r.status === 403) { console.log('DHL: Schlüssel ungültig'); dhlStop = true; break; }
+    const upd = { autoAt: Date.now() };
+    if (r.status === 404) upd.autoText = 'DHL kennt die Sendungsnummer (noch) nicht.';
+    else if (!r.ok) { console.log('DHL-Fehler', r.status); continue; }
+    else {
+      const j = await r.json(); const sh = (j.shipments || [])[0] || {}; const st = sh.status || {};
+      const text = String(st.description || st.status || '').trim();
+      upd.autoText = (text || 'Unterwegs').slice(0, 200);
+      const today_ = p.status === 'heute' && p.statusAt && key(new Date(p.statusAt)) === T;
+      if (st.statusCode === 'delivered' || /zur abholung bereit|abholbereit|liegt .*(filiale|packstation)/i.test(text)) Object.assign(upd, { status: 'zugestellt', statusAt: Date.now(), statusBy: 'DHL' });
+      else if (!today_ && (/zustellfahrzeug|in zustellung|zur zustellung|out for delivery|heute zugestellt/i.test(text) || st.statusCode === 'out-for-delivery')) Object.assign(upd, { status: 'heute', statusAt: Date.now(), statusBy: 'DHL' });
+    }
+    console.log(`DHL ${p.nr}: ${upd.autoText}${upd.status ? ' → ' + upd.status : ''}`);
+    try { await patch(`packages/${p.id}`, upd); changed = true; } catch (err) { console.log('Paket speichern:', err.message); }
+  }
+  return changed;
 }
 const sent = new Set(); // in diesem Lauf schon erledigt, spart Lese- und Schreibzugriffe
 
 /* ---------- Was ist fällig? ---------- */
 async function due() {
   const out = []; // {id, title, body, to?: name}
-  const { tasks, events, bdays, muellDoc } = await data();
+  const { tasks, events, bdays, muellDoc, pkgs } = await data();
+
+  // Pakete: "Kommt heute" (von Hand oder laut DHL), "zugestellt" laut DHL, "ist da" an den Empfänger. Nur 7 bis 22 Uhr.
+  if (inWin(at(today, '07:00'), at(today, '22:00'))) {
+    for (const p of pkgs) {
+      const what = p.label || (CARRIER_NAMES[p.carrier] || 'Ein') + '-Paket', forTxt = p.for ? ` für ${p.for}` : '';
+      if (p.status === 'heute' && p.statusAt && key(new Date(p.statusAt)) === T)
+        out.push({ id: `pkg_heute_${p.id}_${T}`, title: '📦 Paket kommt heute', body: what + forTxt + (p.statusBy === 'DHL' ? ' · laut DHL im Zustellfahrzeug' : p.statusBy ? ` · Info von ${p.statusBy}` : ''), to: p.for || '', not: p.statusBy === 'DHL' ? '' : p.statusBy || '' });
+      if (p.status === 'zugestellt' && p.statusAt && now - p.statusAt < 3 * 36e5)
+        out.push({ id: `pkg_zu_${p.id}`, title: '📦 Paket ist angekommen', body: what + forTxt + ' · ' + (p.autoText || `laut ${p.statusBy || 'Paketdienst'} zugestellt`), to: p.for || '' });
+      if (p.status === 'da' && p.receivedAt && now - p.receivedAt < 3 * 36e5 && p.for && p.for !== p.receivedBy)
+        out.push({ id: `pkg_da_${p.id}`, title: '📦 Dein Paket ist da', body: what + ' · angenommen von ' + (p.receivedBy || 'jemandem aus der Familie'), to: p.for });
+    }
+  }
 
   // Aufgaben mit Frist: 30 Minuten vorher, wenn noch nicht abgehakt
   for (const c of tasks) {
@@ -178,10 +250,11 @@ async function tick() {
   today = parse(key(now)); tomorrow = addDays(today, 1); T = key(today);
   const subs = (await data()).subs;
   if (DRY && !subs.length) subs.push({ id: 'test', name: '', endpoint: 'x' });
+  if (await pollDhl((await data()).pkgs)) pkgsAt = 0; // neu laden, damit Änderungen gleich gemeldet werden
   const items = await due();
   console.log(`${hm(now)} · ${subs.length} Handy(s) angemeldet · ${items.length} fällig`);
   for (const it of items) {
-    const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to));
+    const targets = subs.filter(s => s.endpoint && (!it.to || !s.name || s.name === it.to) && (!it.not || s.name !== it.not));
     if (!targets.length || sent.has(it.id)) continue;
     if (it.check && await it.check()) { sent.add(it.id); continue; } // schon abgehakt
     sent.add(it.id);
